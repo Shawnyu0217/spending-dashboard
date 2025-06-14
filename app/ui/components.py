@@ -143,7 +143,7 @@ def display_kpi_cards(df: pd.DataFrame):
             if card["delta_color"] == "inverse":
                 delta_color = "inverse"
             elif card["delta_color"] == "off":
-                delta_color = None
+                delta_color = "off"
             
             st.metric(
                 label=card["title"],
@@ -363,4 +363,4 @@ def create_chart_container(title: str, chart_func, *args, **kwargs):
     except Exception as e:
         st.error(f"Error creating chart '{title}': {str(e)}")
         with st.expander("Chart Error Details"):
-            st.code(str(e)) 
+            st.code(str(e))
