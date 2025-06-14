@@ -8,10 +8,10 @@ import pandas as pd
 from typing import Dict, Any
 
 # Import our modules
-from .config import PAGE_CONFIG
-from .data.loader import get_data_for_dashboard
-from .data.preprocess import preprocess_data, filter_data_by_selections
-from .features.viz import (
+from app.config import PAGE_CONFIG
+from app.data.loader import get_data_for_dashboard
+from app.data.preprocess import preprocess_data, filter_data_by_selections
+from app.features.viz import (
     create_monthly_trend_chart,
     create_category_expense_chart,
     create_daily_spending_heatmap,
@@ -20,7 +20,7 @@ from .features.viz import (
     create_cumulative_balance_chart,
     create_expense_distribution_pie
 )
-from .ui.components import (
+from app.ui.components import (
     create_sidebar_filters,
     display_kpi_cards,
     display_data_summary,
@@ -249,4 +249,4 @@ def main():
             st.exception(e)
 
 if __name__ == "__main__":
-    main() 
+    main()
