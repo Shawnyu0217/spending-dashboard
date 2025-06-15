@@ -378,10 +378,11 @@ def identify_best_worst_months(df: pd.DataFrame) -> Dict[str, Any]:
     below_avg_months = monthly_data[monthly_data["savings_rate"] < avg_rate]
     
     if not below_avg_months.empty:
+        average_shortfall = avg_rate - below_avg_months["savings_rate"].mean()
         analysis["improvement_potential"] = {
             "months_below_average": len(below_avg_months),
-            "average_shortfall": avg_rate - below_avg_months["savings_rate"].mean(),
-            "potential_additional_savings": below_avg_months["expenses"].mean() * (analysis["improvement_potential"]["average_shortfall"] / 100) if "improvement_potential" in analysis else 0
+            "average_shortfall": average_shortfall,
+            "potential_additional_savings": below_avg_months["expenses"].mean() * (average_shortfall / 100)
         }
     
     return analysis
