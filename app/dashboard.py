@@ -10,7 +10,8 @@ from typing import Dict, Any
 # Import our modules
 from app.config import PAGE_CONFIG
 from app.data.loader import get_data_for_dashboard
-from app.data.preprocess import preprocess_data, filter_data_by_selections
+from app.data.preprocess import preprocess_data
+from app.data.filters import filter_data_by_selections
 from app.features.viz import (
     create_monthly_trend_chart,
     create_category_expense_chart,
