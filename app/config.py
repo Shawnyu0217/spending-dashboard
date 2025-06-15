@@ -24,20 +24,80 @@ COLUMN_MAPPINGS = {
 
 # Category mappings for better display (Chinese to English)
 CATEGORY_MAPPINGS = {
+    # Food & Dining
     "餐饮": "Food & Dining",
+    "食物": "Food & Dining",
+    "饮食": "Food & Dining",
+    "外卖": "Food & Dining",
+    "餐厅": "Food & Dining",
+    
+    # Shopping & Retail
     "购物": "Shopping", 
+    "日用品": "Shopping",
+    "超市": "Shopping",
+    "服饰": "Shopping",
+    "家居": "Shopping",
+    "电子产品": "Shopping",
+    
+    # Transportation
     "交通": "Transportation",
+    "打车": "Transportation",
+    "公交": "Transportation",
+    "地铁": "Transportation",
+    "汽油": "Transportation",
+    "停车": "Transportation",
+    
+    # Living Services
     "生活服务": "Living Services",
+    "通讯": "Living Services",
+    "水电费": "Living Services",
+    "房租": "Living Services",
+    "物业": "Living Services",
+    
+    # Healthcare
     "医疗健康": "Healthcare",
+    "医疗": "Healthcare",
+    "药品": "Healthcare",
+    "体检": "Healthcare",
+    "保健": "Healthcare",
+    
+    # Education
     "教育": "Education",
+    "培训": "Education",
+    "书籍": "Education",
+    "学费": "Education",
+    
+    # Entertainment
     "娱乐": "Entertainment",
+    "游戏": "Entertainment",
+    "电影": "Entertainment",
+    "运动": "Entertainment",
+    "健身": "Entertainment",
+    
+    # Travel
     "旅游": "Travel",
+    "酒店": "Travel",
+    "机票": "Travel",
+    
+    # Social & Personal
     "人情往来": "Social",
+    "礼品": "Social",
+    "美容": "Personal Care",
+    "理发": "Personal Care",
+    "宠物": "Pet Care",
+    
+    # Other
     "其他": "Other",
+    "杂项": "Other",
+    
+    # Income
     "收入": "Income",
     "工资": "Salary",
     "奖金": "Bonus",
-    "投资收益": "Investment Income"
+    "投资收益": "Investment Income",
+    "理财": "Investment Income",
+    "津贴": "Allowance",
+    "补贴": "Subsidy"
 }
 
 # Transaction type mappings  

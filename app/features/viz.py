@@ -371,8 +371,17 @@ def create_expense_distribution_pie(df: pd.DataFrame) -> go.Figure:
         )
         return fig
     
+    # Debug: Print category distribution
+    print(f"DEBUG: Expense transactions: {len(expenses_df)}")
+    print("DEBUG: Top-level category distribution:")
+    debug_counts = expenses_df["top_level_category"].value_counts()
+    print(debug_counts)
+    
     category_totals = expenses_df.groupby("top_level_category")["amount"].sum().reset_index()
     category_totals = category_totals.sort_values("amount", ascending=False)
+    
+    print(f"DEBUG: Category totals:")
+    print(category_totals)
     
     fig = go.Figure(data=[go.Pie(
         labels=category_totals["top_level_category"],

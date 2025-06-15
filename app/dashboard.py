@@ -70,6 +70,16 @@ def initialize_session_state():
     if "data_loaded" not in st.session_state:
         st.session_state.data_loaded = False
 
+def clear_cache_button():
+    """Add a button to clear cache in sidebar."""
+    if st.sidebar.button("🔄 Clear Cache & Refresh Data"):
+        st.cache_data.clear()
+        st.session_state.data_loaded = False
+        st.session_state.df_processed = pd.DataFrame()
+        st.session_state.dim_tables = {}
+        st.success("Cache cleared! Data will be reloaded.")
+        st.rerun()
+
 def load_and_process_data(uploaded_file=None) -> tuple[pd.DataFrame, Dict[str, pd.DataFrame]]:
     """
     Load and process data with caching.
@@ -127,6 +137,9 @@ def create_main_dashboard():
         type=['xlsx', 'xls'],
         help="Upload your expense tracking Excel file"
     )
+    
+    # Add cache clear button
+    clear_cache_button()
     
     if uploaded_file:
         st.sidebar.success("✅ File uploaded successfully!")
