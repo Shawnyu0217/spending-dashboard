@@ -17,7 +17,8 @@ from app.features.kpis import (
     average_daily_spending,
     format_currency,
     format_percentage,
-    get_kpi_metrics
+    get_kpi_metrics,
+    identify_best_worst_months
 )
 
 class TestKPIFunctions:
@@ -190,6 +191,42 @@ class TestKPIEdgeCases:
         category, amount = largest_expense_category(single_data)
         assert category == "Food"
         assert amount == 50.0
+
+    def test_identify_best_worst_months_improvement_potential(self):
+        """Test improvement potential calculation in identify_best_worst_months."""
+        df = pd.DataFrame({
+            "date": pd.to_datetime([
+                "2024-01-15", "2024-01-20",
+                "2024-02-10", "2024-02-15",
+                "2024-03-05", "2024-03-20"
+            ]),
+            "transaction_type": [
+                "income", "expense",
+                "income", "expense",
+                "income", "expense"
+            ],
+            "category_display": [
+                "Salary", "Food",
+                "Salary", "Rent",
+                "Salary", "Misc"
+            ],
+            "amount": [1000, 500, 800, 700, 1200, 1000]
+        })
+
+        df["ym_str"] = df["date"].dt.to_period("M").astype(str)
+        df["net_amount"] = df.apply(lambda r: r["amount"] if r["transaction_type"] == "income" else -r["amount"], axis=1)
+        df["income_amount"] = df.apply(lambda r: r["amount"] if r["transaction_type"] == "income" else 0, axis=1)
+        df["expense_amount"] = df.apply(lambda r: r["amount"] if r["transaction_type"] == "expense" else 0, axis=1)
+
+        analysis = identify_best_worst_months(df)
+
+        assert analysis["best_month"]["month"] == "2024-01"
+        assert analysis["worst_month"]["month"] == "2024-02"
+
+        imp = analysis["improvement_potential"]
+        assert imp["months_below_average"] == 2
+        assert imp["average_shortfall"] == pytest.approx(11.8055, rel=1e-4)
+        assert imp["potential_additional_savings"] == pytest.approx(100.3472, rel=1e-4)
 
 if __name__ == "__main__":
     pytest.main([__file__]) 
