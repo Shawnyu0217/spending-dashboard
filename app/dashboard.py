@@ -17,6 +17,7 @@ from app.features.viz import (
     create_daily_spending_heatmap,
     create_savings_rate_gauge,
     create_monthly_savings_rate_chart,
+    create_monthly_savings_rate_chart_enhanced,
     create_cumulative_balance_chart,
     create_expense_distribution_pie
 )
@@ -28,6 +29,8 @@ from app.ui.components import (
     create_data_table_section,
     create_export_section,
     create_chart_container,
+    create_chart_configuration_controls,
+    display_savings_rate_insights,
     show_loading_spinner,
     show_error_message
 )
@@ -158,6 +161,9 @@ def create_main_dashboard():
     # Add the uploaded file to filters for consistency
     filters["uploaded_file"] = uploaded_file
     
+    # Create chart configuration controls
+    chart_config = create_chart_configuration_controls()
+    
     # Apply filters to data
     df_filtered = filter_data_by_selections(
         df_processed,
@@ -213,12 +219,25 @@ def create_main_dashboard():
             df_filtered
         )
     
-    # Third row - Monthly Savings Rate Trends (full width)
+    # Third row - Monthly Savings Rate Trends (full width with enhanced features)
+    def enhanced_savings_chart(df):
+        return create_monthly_savings_rate_chart_enhanced(
+            df,
+            target_rate=chart_config.get("target_rate", 10.0),
+            show_dual_axis=chart_config.get("show_dual_axis", False),
+            show_moving_average=chart_config.get("show_moving_average", True),
+            ma_periods=chart_config.get("ma_periods", 3)
+        )
+    
     create_chart_container(
         "📊 Monthly Savings Rate Trends",
-        create_monthly_savings_rate_chart,
+        enhanced_savings_chart,
         df_filtered
     )
+    
+    # Add insights section for savings rate
+    with st.expander("💡 Savings Rate Insights", expanded=False):
+        display_savings_rate_insights(df_filtered, chart_config.get("target_rate", 10.0))
     
     # Fourth row - Cumulative Balance (full width)
     create_chart_container(
