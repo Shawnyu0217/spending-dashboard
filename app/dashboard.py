@@ -16,7 +16,6 @@ from app.features.viz import (
     create_category_expense_chart,
     create_daily_spending_heatmap,
     create_savings_rate_gauge,
-    create_account_comparison_chart,
     create_cumulative_balance_chart,
     create_expense_distribution_pie
 )
@@ -200,22 +199,12 @@ def create_main_dashboard():
             df_filtered
         )
     
-    # Third row of charts
-    col5, col6 = st.columns(2)
-    
-    with col5:
-        create_chart_container(
-            "🏦 Account Comparison",
-            create_account_comparison_chart,
-            df_filtered
-        )
-    
-    with col6:
-        create_chart_container(
-            "📈 Cumulative Balance",
-            create_cumulative_balance_chart,
-            df_filtered
-        )
+    # Third row - single chart (full width)
+    create_chart_container(
+        "📈 Cumulative Balance",
+        create_cumulative_balance_chart,
+        df_filtered
+    )
     
     # Optional: Daily spending heatmap (full width)
     if len(df_filtered) > 30:  # Only show if we have enough data
