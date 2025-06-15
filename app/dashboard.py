@@ -122,15 +122,28 @@ def create_main_dashboard():
     # Initialize session state
     initialize_session_state()
     
-    # Create sidebar filters
-    filters = create_sidebar_filters(st.session_state.dim_tables)
+    # Load and process data first (with just file upload)
+    uploaded_file = st.sidebar.file_uploader(
+        "📁 Upload Excel file",
+        type=['xlsx', 'xls'],
+        help="Upload your expense tracking Excel file"
+    )
     
-    # Load and process data
-    df_processed, dim_tables = load_and_process_data(filters.get("uploaded_file"))
+    if uploaded_file:
+        st.sidebar.success("✅ File uploaded successfully!")
+    else:
+        st.sidebar.info("💡 Using sample data file")
+    
+    df_processed, dim_tables = load_and_process_data(uploaded_file)
     
     if df_processed.empty:
         st.warning("⚠️ No data available. Please check your data file or upload a new one.")
         st.stop()
+    
+    # Now create sidebar filters with actual data
+    filters = create_sidebar_filters(dim_tables)
+    # Add the uploaded file to filters for consistency
+    filters["uploaded_file"] = uploaded_file
     
     # Apply filters to data
     df_filtered = filter_data_by_selections(

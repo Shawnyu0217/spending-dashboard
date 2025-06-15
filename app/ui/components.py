@@ -24,20 +24,6 @@ def create_sidebar_filters(dim_tables: Dict[str, pd.DataFrame]) -> Dict[str, Any
     
     filters = {}
     
-    # File uploader
-    st.sidebar.subheader("📁 Data Source")
-    uploaded_file = st.sidebar.file_uploader(
-        "Upload Excel file",
-        type=['xlsx', 'xls'],
-        help="Upload your expense tracking Excel file"
-    )
-    filters["uploaded_file"] = uploaded_file
-    
-    if uploaded_file:
-        st.sidebar.success("✅ File uploaded successfully!")
-    else:
-        st.sidebar.info("💡 Using sample data file")
-    
     st.sidebar.divider()
     
     # Year filter
