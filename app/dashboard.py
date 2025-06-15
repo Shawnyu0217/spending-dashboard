@@ -16,6 +16,7 @@ from app.features.viz import (
     create_category_expense_chart,
     create_daily_spending_heatmap,
     create_savings_rate_gauge,
+    create_monthly_savings_rate_chart,
     create_cumulative_balance_chart,
     create_expense_distribution_pie
 )
@@ -212,7 +213,14 @@ def create_main_dashboard():
             df_filtered
         )
     
-    # Third row - single chart (full width)
+    # Third row - Monthly Savings Rate Trends (full width)
+    create_chart_container(
+        "📊 Monthly Savings Rate Trends",
+        create_monthly_savings_rate_chart,
+        df_filtered
+    )
+    
+    # Fourth row - Cumulative Balance (full width)
     create_chart_container(
         "📈 Cumulative Balance",
         create_cumulative_balance_chart,
