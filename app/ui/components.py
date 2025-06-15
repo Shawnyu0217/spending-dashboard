@@ -8,7 +8,7 @@ from typing import Dict, List, Optional, Tuple, Any
 from datetime import datetime, date
 
 from ..features.kpis import get_kpi_cards_data, get_kpi_metrics, get_enhanced_kpi_metrics
-from ..data.preprocess import filter_data_by_selections
+from ..data.filters import filter_data_by_selections
 
 def create_sidebar_filters(dim_tables: Dict[str, pd.DataFrame]) -> Dict[str, Any]:
     """
