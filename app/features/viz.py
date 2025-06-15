@@ -8,9 +8,12 @@ import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 from typing import Dict, List, Optional
 import streamlit as st
+import logging
 
 from ..config import COLORS
 from .kpis import monthly_summary, top_expense_categories
+
+logger = logging.getLogger(__name__)
 
 def create_monthly_trend_chart(df: pd.DataFrame) -> go.Figure:
     """
@@ -681,17 +684,15 @@ def create_expense_distribution_pie(df: pd.DataFrame) -> go.Figure:
         )
         return fig
     
-    # Debug: Print category distribution
-    print(f"DEBUG: Expense transactions: {len(expenses_df)}")
-    print("DEBUG: Top-level category distribution:")
+    # Debug information using logger
+    logger.debug("Expense transactions: %s", len(expenses_df))
     debug_counts = expenses_df["top_level_category"].value_counts()
-    print(debug_counts)
+    logger.debug("Top-level category distribution:\n%s", debug_counts)
     
     category_totals = expenses_df.groupby("top_level_category")["amount"].sum().reset_index()
     category_totals = category_totals.sort_values("amount", ascending=False)
     
-    print(f"DEBUG: Category totals:")
-    print(category_totals)
+    logger.debug("Category totals:\n%s", category_totals)
     
     fig = go.Figure(data=[go.Pie(
         labels=category_totals["top_level_category"],
