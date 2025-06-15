@@ -1,5 +1,6 @@
 # Ignore data directory (contains datasets or generated files)
 data/
+!app/data/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
