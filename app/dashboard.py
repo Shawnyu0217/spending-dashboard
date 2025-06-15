@@ -16,7 +16,6 @@ from app.features.viz import (
     create_category_expense_chart,
     create_daily_spending_heatmap,
     create_savings_rate_gauge,
-    create_account_comparison_chart,
     create_cumulative_balance_chart,
     create_expense_distribution_pie
 )
@@ -71,6 +70,16 @@ def initialize_session_state():
     if "data_loaded" not in st.session_state:
         st.session_state.data_loaded = False
 
+def clear_cache_button():
+    """Add a button to clear cache in sidebar."""
+    if st.sidebar.button("🔄 Clear Cache & Refresh Data"):
+        st.cache_data.clear()
+        st.session_state.data_loaded = False
+        st.session_state.df_processed = pd.DataFrame()
+        st.session_state.dim_tables = {}
+        st.success("Cache cleared! Data will be reloaded.")
+        st.rerun()
+
 def load_and_process_data(uploaded_file=None) -> tuple[pd.DataFrame, Dict[str, pd.DataFrame]]:
     """
     Load and process data with caching.
@@ -122,15 +131,31 @@ def create_main_dashboard():
     # Initialize session state
     initialize_session_state()
     
-    # Create sidebar filters
-    filters = create_sidebar_filters(st.session_state.dim_tables)
+    # Load and process data first (with just file upload)
+    uploaded_file = st.sidebar.file_uploader(
+        "📁 Upload Excel file",
+        type=['xlsx', 'xls'],
+        help="Upload your expense tracking Excel file"
+    )
     
-    # Load and process data
-    df_processed, dim_tables = load_and_process_data(filters.get("uploaded_file"))
+    # Add cache clear button
+    clear_cache_button()
+    
+    if uploaded_file:
+        st.sidebar.success("✅ File uploaded successfully!")
+    else:
+        st.sidebar.info("💡 Using sample data file")
+    
+    df_processed, dim_tables = load_and_process_data(uploaded_file)
     
     if df_processed.empty:
         st.warning("⚠️ No data available. Please check your data file or upload a new one.")
         st.stop()
+    
+    # Now create sidebar filters with actual data
+    filters = create_sidebar_filters(dim_tables)
+    # Add the uploaded file to filters for consistency
+    filters["uploaded_file"] = uploaded_file
     
     # Apply filters to data
     df_filtered = filter_data_by_selections(
@@ -187,22 +212,12 @@ def create_main_dashboard():
             df_filtered
         )
     
-    # Third row of charts
-    col5, col6 = st.columns(2)
-    
-    with col5:
-        create_chart_container(
-            "🏦 Account Comparison",
-            create_account_comparison_chart,
-            df_filtered
-        )
-    
-    with col6:
-        create_chart_container(
-            "📈 Cumulative Balance",
-            create_cumulative_balance_chart,
-            df_filtered
-        )
+    # Third row - single chart (full width)
+    create_chart_container(
+        "📈 Cumulative Balance",
+        create_cumulative_balance_chart,
+        df_filtered
+    )
     
     # Optional: Daily spending heatmap (full width)
     if len(df_filtered) > 30:  # Only show if we have enough data
