@@ -231,6 +231,316 @@ def create_savings_rate_gauge(df: pd.DataFrame) -> go.Figure:
     
     return fig
 
+def create_monthly_savings_rate_chart(df: pd.DataFrame, target_rate: float = 10.0) -> go.Figure:
+    """
+    Create a line chart showing monthly savings rate trends over time.
+    
+    Args:
+        df: Processed DataFrame
+        target_rate: Target savings rate percentage (default: 10%)
+        
+    Returns:
+        Plotly figure
+    """
+    monthly_data = monthly_summary(df)
+    
+    if monthly_data.empty:
+        # Return empty figure with message
+        fig = go.Figure()
+        fig.add_annotation(
+            text="No data available for monthly savings rate trends",
+            xref="paper", yref="paper",
+            x=0.5, y=0.5, xanchor='center', yanchor='middle',
+            showarrow=False, font=dict(size=16)
+        )
+        return fig
+    
+    fig = go.Figure()
+    
+    # Define colors based on whether savings rate meets target
+    colors = []
+    for rate in monthly_data["savings_rate"]:
+        if rate >= target_rate:
+            colors.append(COLORS["net"])  # Green for above target
+        else:
+            colors.append(COLORS["expense"])  # Red for below target
+    
+    # Add savings rate line with conditional coloring
+    fig.add_trace(go.Scatter(
+        x=monthly_data["month"],
+        y=monthly_data["savings_rate"],
+        mode='lines+markers',
+        name='Savings Rate',
+        line=dict(color=COLORS["net"], width=3),
+        marker=dict(
+            size=10,
+            color=colors,
+            line=dict(width=2, color='white')
+        ),
+        hovertemplate='<b>%{x}</b><br>' +
+                     'Savings Rate: %{y:.1f}%<br>' +
+                     'Income: ¥%{customdata[0]:,.0f}<br>' +
+                     'Expenses: ¥%{customdata[1]:,.0f}<br>' +
+                     'Net Savings: ¥%{customdata[2]:,.0f}<br>' +
+                     '<extra></extra>',
+        customdata=list(zip(
+            monthly_data["income"], 
+            monthly_data["expenses"], 
+            monthly_data["net_savings"]
+        ))
+    ))
+    
+    # Add target line
+    fig.add_hline(
+        y=target_rate, 
+        line_dash="dash", 
+        line_color="gray", 
+        opacity=0.7,
+        annotation_text=f"Target: {target_rate}%",
+        annotation_position="top right"
+    )
+    
+    # Add zero line for reference
+    fig.add_hline(y=0, line_dash="dot", line_color="black", opacity=0.3)
+    
+    # Color-code the background areas
+    fig.add_hrect(
+        y0=target_rate, y1=100,
+        fillcolor="lightgreen", opacity=0.1,
+        layer="below", line_width=0,
+    )
+    fig.add_hrect(
+        y0=0, y1=target_rate,
+        fillcolor="lightcoral", opacity=0.1,
+        layer="below", line_width=0,
+    )
+    
+    fig.update_layout(
+        title=f"Monthly Savings Rate Trends (Target: {target_rate}%)",
+        xaxis_title="Month",
+        yaxis_title="Savings Rate (%)",
+        hovermode='x unified',
+        showlegend=True,
+        height=400,
+        yaxis=dict(
+            ticksuffix="%",
+            range=[-10, max(50, monthly_data["savings_rate"].max() + 5)]
+        )
+    )
+    
+    return fig
+
+def create_monthly_savings_rate_chart_enhanced(df: pd.DataFrame, 
+                                             target_rate: float = 10.0,
+                                             show_dual_axis: bool = False,
+                                             show_moving_average: bool = True,
+                                             ma_periods: int = 3) -> go.Figure:
+    """
+    Create an enhanced line chart showing monthly savings rate trends with advanced features.
+    
+    Args:
+        df: Processed DataFrame
+        target_rate: Target savings rate percentage
+        show_dual_axis: Whether to show dual axis (rate % and absolute amounts)
+        show_moving_average: Whether to show moving average trend line
+        ma_periods: Number of periods for moving average (default: 3)
+        
+    Returns:
+        Plotly figure with enhanced features
+    """
+    monthly_data = monthly_summary(df)
+    
+    if monthly_data.empty:
+        # Return empty figure with message
+        fig = go.Figure()
+        fig.add_annotation(
+            text="No data available for monthly savings rate trends",
+            xref="paper", yref="paper",
+            x=0.5, y=0.5, xanchor='center', yanchor='middle',
+            showarrow=False, font=dict(size=16)
+        )
+        return fig
+    
+    # Calculate moving averages
+    if show_moving_average and len(monthly_data) >= ma_periods:
+        monthly_data['savings_rate_ma'] = monthly_data['savings_rate'].rolling(
+            window=ma_periods, center=True
+        ).mean()
+        monthly_data['net_savings_ma'] = monthly_data['net_savings'].rolling(
+            window=ma_periods, center=True
+        ).mean()
+    
+    # Define colors based on whether savings rate meets target
+    colors = []
+    for rate in monthly_data["savings_rate"]:
+        if rate >= target_rate:
+            colors.append(COLORS["net"])  # Green for above target
+        else:
+            colors.append(COLORS["expense"])  # Red for below target
+    
+    if show_dual_axis:
+        # Create dual-axis chart
+        fig = make_subplots(specs=[[{"secondary_y": True}]])
+        
+        # Add savings rate line (primary y-axis)
+        fig.add_trace(
+            go.Scatter(
+                x=monthly_data["month"],
+                y=monthly_data["savings_rate"],
+                mode='lines+markers',
+                name='Savings Rate (%)',
+                line=dict(color=COLORS["net"], width=3),
+                marker=dict(
+                    size=10,
+                    color=colors,
+                    line=dict(width=2, color='white')
+                ),
+                hovertemplate='<b>%{x}</b><br>' +
+                             'Savings Rate: %{y:.1f}%<br>' +
+                             '<extra></extra>',
+            ),
+            secondary_y=False,
+        )
+        
+        # Add net savings bars (secondary y-axis)
+        fig.add_trace(
+            go.Bar(
+                x=monthly_data["month"],
+                y=monthly_data["net_savings"],
+                name='Net Savings (¥)',
+                marker_color=[color + '80' for color in colors],  # Add transparency
+                opacity=0.6,
+                hovertemplate='<b>%{x}</b><br>' +
+                             'Net Savings: ¥%{y:,.0f}<br>' +
+                             '<extra></extra>',
+            ),
+            secondary_y=True,
+        )
+        
+        # Add moving average if requested
+        if show_moving_average and len(monthly_data) >= ma_periods:
+            fig.add_trace(
+                go.Scatter(
+                    x=monthly_data["month"],
+                    y=monthly_data["savings_rate_ma"],
+                    mode='lines',
+                    name=f'{ma_periods}-Month MA',
+                    line=dict(color='purple', width=2, dash='dot'),
+                    hovertemplate='<b>%{x}</b><br>' +
+                                 f'{ma_periods}-Month MA: %{{y:.1f}}%<br>' +
+                                 '<extra></extra>',
+                ),
+                secondary_y=False,
+            )
+        
+        # Add target line
+        fig.add_hline(
+            y=target_rate, 
+            line_dash="dash", 
+            line_color="gray", 
+            opacity=0.7,
+            annotation_text=f"Target: {target_rate}%",
+            annotation_position="top right",
+            secondary_y=False
+        )
+        
+        # Set y-axes titles
+        fig.update_yaxes(title_text="Savings Rate (%)", secondary_y=False, ticksuffix="%")
+        fig.update_yaxes(title_text="Net Savings (¥)", secondary_y=True, tickformat=",.0f")
+        
+        # Update layout
+        fig.update_layout(
+            title=f"Monthly Savings Rate & Amount Trends (Target: {target_rate}%)",
+            xaxis_title="Month",
+            hovermode='x unified',
+            height=450,
+            legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1)
+        )
+        
+    else:
+        # Single-axis chart (enhanced version of original)
+        fig = go.Figure()
+        
+        # Add savings rate line with conditional coloring
+        fig.add_trace(go.Scatter(
+            x=monthly_data["month"],
+            y=monthly_data["savings_rate"],
+            mode='lines+markers',
+            name='Savings Rate',
+            line=dict(color=COLORS["net"], width=3),
+            marker=dict(
+                size=10,
+                color=colors,
+                line=dict(width=2, color='white')
+            ),
+            hovertemplate='<b>%{x}</b><br>' +
+                         'Savings Rate: %{y:.1f}%<br>' +
+                         'Income: ¥%{customdata[0]:,.0f}<br>' +
+                         'Expenses: ¥%{customdata[1]:,.0f}<br>' +
+                         'Net Savings: ¥%{customdata[2]:,.0f}<br>' +
+                         'Transactions: %{customdata[3]}<br>' +
+                         '<extra></extra>',
+            customdata=list(zip(
+                monthly_data["income"], 
+                monthly_data["expenses"], 
+                monthly_data["net_savings"],
+                monthly_data["transaction_count"]
+            ))
+        ))
+        
+        # Add moving average if requested
+        if show_moving_average and len(monthly_data) >= ma_periods:
+            fig.add_trace(go.Scatter(
+                x=monthly_data["month"],
+                y=monthly_data["savings_rate_ma"],
+                mode='lines',
+                name=f'{ma_periods}-Month Trend',
+                line=dict(color='purple', width=2, dash='dot'),
+                hovertemplate='<b>%{x}</b><br>' +
+                             f'{ma_periods}-Month Trend: %{{y:.1f}}%<br>' +
+                             '<extra></extra>',
+            ))
+        
+        # Add target line
+        fig.add_hline(
+            y=target_rate, 
+            line_dash="dash", 
+            line_color="gray", 
+            opacity=0.7,
+            annotation_text=f"Target: {target_rate}%",
+            annotation_position="top right"
+        )
+        
+        # Add zero line for reference
+        fig.add_hline(y=0, line_dash="dot", line_color="black", opacity=0.3)
+        
+        # Color-code the background areas
+        fig.add_hrect(
+            y0=target_rate, y1=100,
+            fillcolor="lightgreen", opacity=0.1,
+            layer="below", line_width=0,
+        )
+        fig.add_hrect(
+            y0=0, y1=target_rate,
+            fillcolor="lightcoral", opacity=0.1,
+            layer="below", line_width=0,
+        )
+        
+        fig.update_layout(
+            title=f"Monthly Savings Rate Trends (Target: {target_rate}%)",
+            xaxis_title="Month",
+            yaxis_title="Savings Rate (%)",
+            hovermode='x unified',
+            showlegend=True,
+            height=400,
+            yaxis=dict(
+                ticksuffix="%",
+                range=[-10, max(50, monthly_data["savings_rate"].max() + 5)]
+            )
+        )
+    
+    return fig
+
 def create_account_comparison_chart(df: pd.DataFrame) -> go.Figure:
     """
     Create a comparison chart of accounts.

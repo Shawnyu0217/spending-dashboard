@@ -4,7 +4,7 @@ KPI calculation functions for the spending dashboard.
 
 import pandas as pd
 import numpy as np
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List, Optional, Tuple, Any
 import streamlit as st
 
 from ..config import CURRENCY_FORMAT, PERCENTAGE_FORMAT
@@ -251,4 +251,165 @@ def get_kpi_cards_data(df: pd.DataFrame) -> List[Dict]:
         }
     ]
     
-    return cards_data 
+    return cards_data
+
+def monthly_savings_rate_with_targets(df: pd.DataFrame, target_rate: float = 10.0) -> pd.DataFrame:
+    """
+    Get monthly savings rate data with target achievement indicators.
+    
+    Args:
+        df: Processed DataFrame
+        target_rate: Target savings rate percentage
+        
+    Returns:
+        DataFrame with monthly data and target achievement flags
+    """
+    monthly_data = monthly_summary(df)
+    
+    if monthly_data.empty:
+        return pd.DataFrame()
+    
+    # Add target achievement indicators
+    monthly_data["target_achieved"] = monthly_data["savings_rate"] >= target_rate
+    monthly_data["target_diff"] = monthly_data["savings_rate"] - target_rate
+    
+    # Add performance categories
+    monthly_data["performance"] = pd.cut(
+        monthly_data["savings_rate"],
+        bins=[-float('inf'), 0, target_rate/2, target_rate, target_rate*1.5, float('inf')],
+        labels=['Negative', 'Poor', 'Below Target', 'Good', 'Excellent']
+    )
+    
+    return monthly_data
+
+def savings_rate_statistics(df: pd.DataFrame) -> Dict[str, float]:
+    """
+    Calculate comprehensive savings rate statistics.
+    
+    Args:
+        df: Processed DataFrame
+        
+    Returns:
+        Dictionary with savings rate statistics
+    """
+    monthly_data = monthly_summary(df)
+    
+    if monthly_data.empty:
+        return {}
+    
+    savings_rates = monthly_data["savings_rate"]
+    
+    stats = {
+        "average_savings_rate": savings_rates.mean(),
+        "median_savings_rate": savings_rates.median(),
+        "min_savings_rate": savings_rates.min(),
+        "max_savings_rate": savings_rates.max(),
+        "std_savings_rate": savings_rates.std(),
+        "months_above_target_10": (savings_rates >= 10).sum(),
+        "months_above_target_20": (savings_rates >= 20).sum(),
+        "months_negative": (savings_rates < 0).sum(),
+        "total_months": len(savings_rates),
+        "consistency_score": 100 - (savings_rates.std() / savings_rates.mean() * 100) if savings_rates.mean() != 0 else 0
+    }
+    
+    # Add percentages
+    if stats["total_months"] > 0:
+        stats["pct_months_above_target_10"] = (stats["months_above_target_10"] / stats["total_months"]) * 100
+        stats["pct_months_above_target_20"] = (stats["months_above_target_20"] / stats["total_months"]) * 100
+        stats["pct_months_negative"] = (stats["months_negative"] / stats["total_months"]) * 100
+    
+    return stats
+
+def identify_best_worst_months(df: pd.DataFrame) -> Dict[str, Any]:
+    """
+    Identify the best and worst performing months for savings rate.
+    
+    Args:
+        df: Processed DataFrame
+        
+    Returns:
+        Dictionary with best/worst month analysis
+    """
+    monthly_data = monthly_summary(df)
+    
+    if monthly_data.empty:
+        return {}
+    
+    # Sort by savings rate
+    sorted_data = monthly_data.sort_values("savings_rate", ascending=False)
+    
+    analysis = {
+        "best_month": {
+            "month": sorted_data.iloc[0]["month"],
+            "savings_rate": sorted_data.iloc[0]["savings_rate"],
+            "net_savings": sorted_data.iloc[0]["net_savings"],
+            "income": sorted_data.iloc[0]["income"],
+            "expenses": sorted_data.iloc[0]["expenses"]
+        },
+        "worst_month": {
+            "month": sorted_data.iloc[-1]["month"],
+            "savings_rate": sorted_data.iloc[-1]["savings_rate"],
+            "net_savings": sorted_data.iloc[-1]["net_savings"],
+            "income": sorted_data.iloc[-1]["income"],
+            "expenses": sorted_data.iloc[-1]["expenses"]
+        }
+    }
+    
+    # Add top 3 and bottom 3 if we have enough data
+    if len(sorted_data) >= 3:
+        analysis["top_3_months"] = []
+        analysis["bottom_3_months"] = []
+        
+        for i in range(min(3, len(sorted_data))):
+            analysis["top_3_months"].append({
+                "month": sorted_data.iloc[i]["month"],
+                "savings_rate": sorted_data.iloc[i]["savings_rate"],
+                "net_savings": sorted_data.iloc[i]["net_savings"]
+            })
+            
+            analysis["bottom_3_months"].append({
+                "month": sorted_data.iloc[-(i+1)]["month"],
+                "savings_rate": sorted_data.iloc[-(i+1)]["savings_rate"],
+                "net_savings": sorted_data.iloc[-(i+1)]["net_savings"]
+            })
+    
+    # Calculate improvement opportunities
+    avg_rate = monthly_data["savings_rate"].mean()
+    below_avg_months = monthly_data[monthly_data["savings_rate"] < avg_rate]
+    
+    if not below_avg_months.empty:
+        analysis["improvement_potential"] = {
+            "months_below_average": len(below_avg_months),
+            "average_shortfall": avg_rate - below_avg_months["savings_rate"].mean(),
+            "potential_additional_savings": below_avg_months["expenses"].mean() * (analysis["improvement_potential"]["average_shortfall"] / 100) if "improvement_potential" in analysis else 0
+        }
+    
+    return analysis
+
+def get_enhanced_kpi_metrics(df: pd.DataFrame, target_rate: float = 10.0) -> Dict[str, Any]:
+    """
+    Get enhanced KPI metrics including savings rate analysis.
+    
+    Args:
+        df: Processed DataFrame
+        target_rate: Target savings rate percentage
+        
+    Returns:
+        Dictionary with enhanced KPI metrics
+    """
+    # Get basic metrics
+    basic_metrics = get_kpi_metrics(df)
+    
+    # Get enhanced savings rate analysis
+    savings_stats = savings_rate_statistics(df)
+    best_worst = identify_best_worst_months(df)
+    
+    # Combine all metrics
+    enhanced_metrics = {
+        **basic_metrics,
+        "savings_rate_stats": savings_stats,
+        "best_worst_analysis": best_worst,
+        "target_rate": target_rate
+    }
+    
+    return enhanced_metrics 
