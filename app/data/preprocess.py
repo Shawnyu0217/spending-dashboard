@@ -14,6 +14,9 @@ def add_derived_columns(df: pd.DataFrame) -> pd.DataFrame:
     """
     Add derived columns to the DataFrame.
     
+    DEPRECATED: Use DateTransformer from app.data.transformers instead.
+    This function is kept for backward compatibility.
+    
     Args:
         df: Input DataFrame
         
@@ -48,6 +51,9 @@ def add_derived_columns(df: pd.DataFrame) -> pd.DataFrame:
 def add_financial_columns(df: pd.DataFrame) -> pd.DataFrame:
     """
     Add financial analysis columns.
+    
+    DEPRECATED: Use FinancialTransformer from app.data.transformers instead.
+    This function is kept for backward compatibility.
     
     Args:
         df: Input DataFrame
@@ -93,6 +99,9 @@ def add_financial_columns(df: pd.DataFrame) -> pd.DataFrame:
 def add_category_mappings(df: pd.DataFrame) -> pd.DataFrame:
     """
     Add category mappings and top-level category groupings.
+    
+    DEPRECATED: Use CategoryTransformer from app.data.transformers instead.
+    This function is kept for backward compatibility.
     
     Args:
         df: Input DataFrame
@@ -226,6 +235,9 @@ def create_dimension_tables(df: pd.DataFrame) -> Dict[str, pd.DataFrame]:
     """
     Create dimension tables for filters and dropdowns.
     
+    DEPRECATED: Use DimensionBuilder from app.data.dimension_builder instead.
+    This function is kept for backward compatibility.
+    
     Args:
         df: Input DataFrame
         
@@ -284,27 +296,16 @@ def preprocess_data(df_raw: pd.DataFrame) -> Tuple[pd.DataFrame, Dict[str, pd.Da
     Returns:
         Tuple of (processed_df, dimension_tables)
     """
-    if df_raw.empty:
-        return df_raw, {}
+    from .pipeline import PreprocessingPipeline
     
-    # Apply all preprocessing steps
-    df_processed = df_raw.copy()
+    # Create and configure pipeline
+    pipeline = PreprocessingPipeline.create_default_pipeline(CATEGORY_MAPPINGS)
     
-    # Add derived columns
-    df_processed = add_derived_columns(df_processed)
+    # Set progress callback for UI notifications
+    pipeline.set_progress_callback(lambda msg: st.success(msg))
     
-    # Add financial columns
-    df_processed = add_financial_columns(df_processed)
-    
-    # Add category mappings
-    df_processed = add_category_mappings(df_processed)
-    
-    # Create dimension tables
-    dim_tables = create_dimension_tables(df_processed)
-    
-    st.success(f"Preprocessing complete: {df_processed.shape[0]} rows processed")
-    
-    return df_processed, dim_tables
+    # Process data using pipeline
+    return pipeline.process(df_raw)
 
 def get_date_range_options(df: pd.DataFrame) -> List[str]:
     """
