@@ -51,14 +51,14 @@ def configure_page():
         margin-bottom: 2rem;
     }
     .metric-container {
-        background: white;
+        background: transparent;
         padding: 1rem;
         border-radius: 10px;
         box-shadow: 0 2px 4px rgba(0,0,0,0.1);
         margin: 0.5rem 0;
     }
     .stMetric {
-        background: white;
+        background: transparent;
         padding: 1rem;
         border-radius: 8px;
         border: 1px solid #e6e6e6;
