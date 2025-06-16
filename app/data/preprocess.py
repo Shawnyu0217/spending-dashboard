@@ -24,7 +24,7 @@ def preprocess_data(df_raw: pd.DataFrame) -> Tuple[pd.DataFrame, Dict[str, pd.Da
     pipeline = PreprocessingPipeline.create_default_pipeline(CATEGORY_MAPPINGS)
     
     # Set progress callback for UI notifications
-    pipeline.set_progress_callback(lambda msg: st.success(msg))
+    # pipeline.set_progress_callback(lambda msg: st.success(msg))
     
     # Process data using pipeline
     return pipeline.process(df_raw)
