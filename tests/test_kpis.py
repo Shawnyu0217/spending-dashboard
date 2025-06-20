@@ -103,9 +103,9 @@ class TestKPIFunctions:
     
     def test_format_currency(self):
         """Test currency formatting."""
-        assert format_currency(1234.56) == "¥1,234.56"
-        assert format_currency(0) == "¥0.00"
-        assert format_currency(1000000) == "¥1,000,000.00"
+        assert format_currency(1234.56) == "$1,234.56"
+        assert format_currency(0) == "$0.00"
+        assert format_currency(1000000) == "$1,000,000.00"
     
     def test_format_percentage(self):
         """Test percentage formatting."""

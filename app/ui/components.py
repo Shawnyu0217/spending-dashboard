@@ -223,7 +223,7 @@ def create_data_table_section(df: pd.DataFrame):
         currency_columns = ["amount", "running_balance"]
         for col in currency_columns:
             if col in df_display.columns:
-                df_display[col] = df_display[col].apply(lambda x: f"¥{x:,.2f}" if pd.notnull(x) else "")
+                df_display[col] = df_display[col].apply(lambda x: f"${x:,.2f}" if pd.notnull(x) else "")
         
         # Format date column
         if "date" in df_display.columns:
@@ -292,9 +292,9 @@ def create_export_section(df: pd.DataFrame):
             Spending Dashboard Summary - {datetime.now().strftime('%Y-%m-%d')}
             
             📊 Financial Overview:
-            • Total Income: ¥{metrics['total_income']:,.2f}
-            • Total Expenses: ¥{metrics['total_expense']:,.2f}
-            • Net Savings: ¥{metrics['net_savings']:,.2f}
+            • Total Income: ${metrics['total_income']:,.2f}
+            • Total Expenses: ${metrics['total_expense']:,.2f}
+            • Net Savings: ${metrics['net_savings']:,.2f}
             • Savings Rate: {metrics['savings_rate']:.1f}%
             
             📋 Transaction Details:
@@ -303,7 +303,7 @@ def create_export_section(df: pd.DataFrame):
             • Expense Transactions: {metrics['expense_transactions']}
             
             🏆 Top Expense Category: {metrics['largest_expense_category']}
-            💰 Daily Average Spending: ¥{metrics['average_daily_spending']:,.2f}
+            💰 Daily Average Spending: ${metrics['average_daily_spending']:,.2f}
             """
             
             st.download_button(
@@ -495,14 +495,14 @@ def display_savings_rate_insights(df: pd.DataFrame, target_rate: float = 10.0):
         best = analysis["best_month"]
         st.write(f"📅 **Month:** {best['month']}")
         st.write(f"📊 **Rate:** {best['savings_rate']:.1f}%")
-        st.write(f"💰 **Saved:** ¥{best['net_savings']:,.0f}")
+        st.write(f"💰 **Saved:** ${best['net_savings']:,.0f}")
     
     with col6:
         st.error("📉 **Needs Improvement**")
         worst = analysis["worst_month"]
         st.write(f"📅 **Month:** {worst['month']}")
         st.write(f"📊 **Rate:** {worst['savings_rate']:.1f}%")
-        st.write(f"💰 **Amount:** ¥{worst['net_savings']:,.0f}")
+        st.write(f"💰 **Amount:** ${worst['net_savings']:,.0f}")
     
     # Improvement suggestions
     if "improvement_potential" in analysis:

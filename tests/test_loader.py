@@ -131,7 +131,7 @@ class TestDataValidation:
         # Create test data with string amounts
         test_df = pd.DataFrame({
             "date": ["2024-01-01", "2024-01-02"],
-            "amount": ["¥100.50", "200"],
+            "amount": ["$100.50", "200"],
             "transaction_type": ["expense", "income"]
         })
         

@@ -77,7 +77,7 @@ def create_monthly_trend_chart(df: pd.DataFrame) -> go.Figure:
     fig.update_layout(
         title="Monthly Financial Trends",
         xaxis_title="Month",
-        yaxis_title="Amount (¥)",
+        yaxis_title="Amount ($)",
         hovermode='x unified',
         showlegend=True,
         height=400
@@ -112,14 +112,14 @@ def create_category_expense_chart(df: pd.DataFrame, n: int = 10) -> go.Figure:
         go.Bar(
             x=top_cats["category"],
             y=top_cats["total_amount"],
-            text=[f"¥{amt:,.0f}<br>({pct:.1f}%)" 
+            text=[f"${amt:,.0f}<br>({pct:.1f}%)" 
                   for amt, pct in zip(top_cats["total_amount"], top_cats["percentage"])],
             textposition='auto',
             marker_color=COLORS["categories"][:len(top_cats)],
             hovertemplate='<b>%{x}</b><br>' +
-                         'Amount: ¥%{y:,.2f}<br>' +
+                         'Amount: $%{y:,.2f}<br>' +
                          'Transactions: %{customdata[0]}<br>' +
-                         'Average: ¥%{customdata[1]:,.2f}<br>' +
+                         'Average: $%{customdata[1]:,.2f}<br>' +
                          '<extra></extra>',
             customdata=list(zip(top_cats["transaction_count"], top_cats["avg_amount"]))
         )
@@ -128,7 +128,7 @@ def create_category_expense_chart(df: pd.DataFrame, n: int = 10) -> go.Figure:
     fig.update_layout(
         title=f"Top {n} Expense Categories",
         xaxis_title="Category",
-        yaxis_title="Total Amount (¥)", 
+        yaxis_title="Total Amount ($)", 
         showlegend=False,
         height=400,
         xaxis_tickangle=-45
@@ -182,7 +182,7 @@ def create_daily_spending_heatmap(df: pd.DataFrame) -> go.Figure:
         x=heatmap_data.columns,
         y=heatmap_data.index,
         colorscale='Reds',
-        hovertemplate='Week: %{x}<br>Day: %{y}<br>Spending: ¥%{z:,.0f}<extra></extra>'
+        hovertemplate='Week: %{x}<br>Day: %{y}<br>Spending: $%{z:,.0f}<extra></extra>'
     ))
     
     fig.update_layout(
@@ -282,9 +282,9 @@ def create_monthly_savings_rate_chart(df: pd.DataFrame, target_rate: float = 10.
         ),
         hovertemplate='<b>%{x}</b><br>' +
                      'Savings Rate: %{y:.1f}%<br>' +
-                     'Income: ¥%{customdata[0]:,.0f}<br>' +
-                     'Expenses: ¥%{customdata[1]:,.0f}<br>' +
-                     'Net Savings: ¥%{customdata[2]:,.0f}<br>' +
+                     'Income: $%{customdata[0]:,.0f}<br>' +
+                     'Expenses: $%{customdata[1]:,.0f}<br>' +
+                     'Net Savings: $%{customdata[2]:,.0f}<br>' +
                      '<extra></extra>',
         customdata=list(zip(
             monthly_data["income"], 
@@ -410,11 +410,11 @@ def create_monthly_savings_rate_chart_enhanced(df: pd.DataFrame,
             go.Bar(
                 x=monthly_data["month"],
                 y=monthly_data["net_savings"],
-                name='Net Savings (¥)',
+                name='Net Savings ($)',
                 marker_color=[color + '80' for color in colors],  # Add transparency
                 opacity=0.6,
                 hovertemplate='<b>%{x}</b><br>' +
-                             'Net Savings: ¥%{y:,.0f}<br>' +
+                             'Net Savings: $%{y:,.0f}<br>' +
                              '<extra></extra>',
             ),
             secondary_y=True,
@@ -449,7 +449,7 @@ def create_monthly_savings_rate_chart_enhanced(df: pd.DataFrame,
         
         # Set y-axes titles
         fig.update_yaxes(title_text="Savings Rate (%)", secondary_y=False, ticksuffix="%")
-        fig.update_yaxes(title_text="Net Savings (¥)", secondary_y=True, tickformat=",.0f")
+        fig.update_yaxes(title_text="Net Savings ($)", secondary_y=True, tickformat=",.0f")
         
         # Update layout
         fig.update_layout(
@@ -478,9 +478,9 @@ def create_monthly_savings_rate_chart_enhanced(df: pd.DataFrame,
             ),
             hovertemplate='<b>%{x}</b><br>' +
                          'Savings Rate: %{y:.1f}%<br>' +
-                         'Income: ¥%{customdata[0]:,.0f}<br>' +
-                         'Expenses: ¥%{customdata[1]:,.0f}<br>' +
-                         'Net Savings: ¥%{customdata[2]:,.0f}<br>' +
+                         'Income: $%{customdata[0]:,.0f}<br>' +
+                         'Expenses: $%{customdata[1]:,.0f}<br>' +
+                         'Net Savings: $%{customdata[2]:,.0f}<br>' +
                          'Transactions: %{customdata[3]}<br>' +
                          '<extra></extra>',
             customdata=list(zip(
@@ -576,7 +576,7 @@ def create_account_comparison_chart(df: pd.DataFrame) -> go.Figure:
         x=account_data["account"],
         y=account_data["income"],
         marker_color=COLORS["income"],
-        text=[f"¥{val:,.0f}" for val in account_data["income"]],
+        text=[f"${val:,.0f}" for val in account_data["income"]],
         textposition='auto'
     ))
     
@@ -586,14 +586,14 @@ def create_account_comparison_chart(df: pd.DataFrame) -> go.Figure:
         x=account_data["account"],
         y=-account_data["expenses"],  # Negative for visual separation
         marker_color=COLORS["expense"],
-        text=[f"¥{val:,.0f}" for val in account_data["expenses"]],
+        text=[f"${val:,.0f}" for val in account_data["expenses"]],
         textposition='auto'
     ))
     
     fig.update_layout(
         title='Account Performance Comparison',
         xaxis_title='Account',
-        yaxis_title='Amount (¥)',
+        yaxis_title='Amount ($)',
         barmode='relative',
         height=400,
         hovermode='x unified'
@@ -645,7 +645,7 @@ def create_cumulative_balance_chart(df: pd.DataFrame) -> go.Figure:
     fig.update_layout(
         title='Cumulative Balance Over Time',
         xaxis_title='Date',
-        yaxis_title='Balance (¥)',
+        yaxis_title='Balance ($)',
         hovermode='x',
         height=400
     )
