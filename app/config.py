@@ -173,5 +173,5 @@ DATE_FORMAT = "%Y-%m-%d"
 DISPLAY_DATE_FORMAT = "%B %d, %Y"
 
 # KPI display formats
-CURRENCY_FORMAT = "¥{:,.2f}"
+CURRENCY_FORMAT = "${:,.2f}"
 PERCENTAGE_FORMAT = "{:.1f}%" 

@@ -111,7 +111,7 @@ def apply_column_dtypes(df: pd.DataFrame) -> pd.DataFrame:
                     # Handle potential string numbers and remove currency symbols
                     if df_typed[col].dtype == "object":
                         df_typed[col] = df_typed[col].astype(str).str.replace(
-                            r'[¥,$\s]', '', regex=True
+                            r'[$¥,\s]', '', regex=True
                         ).str.replace(',', '')
                     df_typed[col] = pd.to_numeric(df_typed[col], errors="coerce")
                 else:
