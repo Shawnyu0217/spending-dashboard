@@ -33,7 +33,7 @@ def create_sidebar_filters(dim_tables: Dict[str, pd.DataFrame]) -> Dict[str, Any
         selected_years = st.sidebar.multiselect(
             "Select Years",
             options=available_years,
-            default=available_years[-2:] if len(available_years) >= 2 else available_years,
+            default=available_years,  # Select all years by default
             help="Choose which years to include in analysis"
         )
         filters["selected_years"] = selected_years
@@ -63,13 +63,11 @@ def create_sidebar_filters(dim_tables: Dict[str, pd.DataFrame]) -> Dict[str, Any
         st.sidebar.subheader("🏷️ Categories")
         available_categories = dim_tables["categories"]["category"].tolist()
         
-        # Show top categories by default
-        default_categories = available_categories[:10] if len(available_categories) > 10 else available_categories
-        
+        # Select all categories by default
         selected_categories = st.sidebar.multiselect(
             "Select Categories",
             options=available_categories,
-            default=default_categories,
+            default=available_categories,  # Select all categories by default
             help="Choose expense categories to analyze"
         )
         filters["selected_categories"] = selected_categories
