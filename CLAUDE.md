@@ -40,6 +40,21 @@ isort app/ tests/
 flake8 app/ tests/
 ```
 
+### Dependencies
+```bash
+# Install dependencies
+pip install -r requirements.txt
+
+# Key packages:
+# - streamlit>=1.28.0 (Web framework)
+# - pandas>=2.0.0 (Data processing)
+# - plotly>=5.15.0 (Interactive charts)
+# - openpyxl>=3.1.0 (Excel file reading)
+# - pandera>=0.17.0 (Data validation)
+# - pytest>=7.4.0 (Testing framework)
+# - black, isort, flake8 (Code quality tools)
+```
+
 ## Architecture
 
 ### Modular Structure
@@ -47,26 +62,45 @@ flake8 app/ tests/
   - `loader.py`: Excel file reading with multi-sheet support
   - `schema.py`: Column normalization and data validation
   - `preprocess.py`: Data transformation and filtering
+  - `pipeline.py`: Pipeline orchestrator for data transformations
+  - `dimension_builder.py`: Creates dimension tables for filters and analytics
+  - `filters.py`: Data filtering utilities
+  - `transformers/`: Transformer classes for modular data processing
+    - `base.py`: Base classes and protocols for transformers
+    - `date_transformer.py`: Date parsing and formatting
+    - `financial_transformer.py`: Financial data processing
+    - `category_transformer.py`: Category mapping and normalization
 - **app/features/**: Business logic layer
   - `kpis.py`: Financial KPI calculations
   - `viz.py`: Chart creation using Plotly
 - **app/ui/**: Streamlit UI components
   - `components.py`: Reusable UI elements and layout
 - **app/config.py**: Configuration constants and mappings
+- **data/**: Sample data files for testing and development
+- **requirements.txt**: Python package dependencies
 
 ### Data Flow
 1. Excel files loaded via `loader.py` with automatic sheet combination
 2. Column names normalized from Chinese to English via `schema.py`
-3. Data preprocessed and filtered in `preprocess.py`
-4. KPIs calculated in `kpis.py`
-5. Charts generated in `viz.py`
-6. UI assembled in `dashboard.py` using `components.py`
+3. Data processed through `pipeline.py` using modular transformers:
+   - `DateTransformer`: Date parsing and temporal feature extraction
+   - `FinancialTransformer`: Amount processing and currency handling
+   - `CategoryTransformer`: Category mapping and normalization
+4. Dimension tables created via `dimension_builder.py` for filters
+5. Data filtered using `filters.py` based on user selections
+6. KPIs calculated in `kpis.py`
+7. Charts generated in `viz.py`
+8. UI assembled in `dashboard.py` using `components.py`
 
 ### Key Design Patterns
+- **Pipeline Pattern**: Modular data processing using `PreprocessingPipeline` with pluggable transformers
+- **Transformer Pattern**: Each data transformation step implemented as a separate `BaseTransformer` class
+- **Protocol-based Design**: `DataTransformer` protocol ensures consistent transformer interfaces
 - **Caching**: Streamlit `@st.cache_data` decorator used for data loading
 - **Separation of Concerns**: Clear separation between data, business logic, and UI
 - **Configuration-driven**: Chinese-to-English mappings centralized in `config.py`
-- **Error Handling**: Graceful handling of missing data and malformed files
+- **Error Handling**: Comprehensive error handling with `TransformationError` and logging
+- **Dimension Modeling**: Separate dimension tables created for efficient filtering and analytics
 
 ### Data Processing
 - Supports Chinese financial app exports (随手记)
