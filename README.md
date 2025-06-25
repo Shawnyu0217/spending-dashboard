@@ -24,7 +24,7 @@ A comprehensive Streamlit-based dashboard for analyzing personal spending data f
 
 3. **Run the dashboard**
    ```bash
-   streamlit run app/dashboard.py
+   streamlit run run_dashboard.py
    ```
 
 4. **Open your browser** to `http://localhost:8501`
