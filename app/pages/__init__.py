@@ -33,7 +33,11 @@ def get_available_pages(df: pd.DataFrame) -> List[BasePage]:
 def get_page_by_key(key: str) -> Optional[BasePage]:
     """Get a specific page by its key."""
     for page_class in PAGE_CLASSES:
-        page = page_class()
-        if page.key == key:
-            return page
+        try:
+            page = page_class()
+            if page.key == key:
+                return page
+        except Exception as e:
+            # Log error but continue searching other pages
+            print(f"Error initializing {page_class.__name__}: {str(e)}")
     return None
