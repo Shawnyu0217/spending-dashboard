@@ -174,4 +174,56 @@ DISPLAY_DATE_FORMAT = "%B %d, %Y"
 
 # KPI display formats
 CURRENCY_FORMAT = "${:,.2f}"
-PERCENTAGE_FORMAT = "{:.1f}%" 
+PERCENTAGE_FORMAT = "{:.1f}%"
+
+# Page-specific settings
+PAGE_SETTINGS = {
+    "overview": {
+        "enabled": True,
+        "min_data_days": 0,
+        "description": "High-level financial overview with KPIs",
+        "charts": {
+            "show_monthly_trends": True,
+            "show_category_breakdown": True,
+            "show_savings_gauge": True,
+            "show_expense_pie": True,
+            "max_categories_shown": 10
+        }
+    },
+    "trends": {
+        "enabled": True,
+        "min_data_days": 30,
+        "description": "Detailed temporal analysis and trends",
+        "charts": {
+            "show_savings_trend": True,
+            "show_cumulative_balance": True,
+            "show_daily_heatmap": True,
+            "default_ma_periods": 3,
+            "default_target_savings": 10.0
+        }
+    },
+    "categories": {
+        "enabled": True,
+        "min_data_days": 7,
+        "description": "Category deep-dive and analysis",
+        "features": {
+            "show_subcategories": True,
+            "enable_category_comparison": True,
+            "max_categories_display": 15
+        }
+    },
+    "advanced": {
+        "enabled": False,  # Disabled initially
+        "min_data_days": 90,
+        "description": "Advanced analytics and forecasting",
+        "features": {
+            "anomaly_detection": True,
+            "basic_forecasting": True,
+            "correlation_analysis": False
+        }
+    }
+}
+
+# Tab display configuration
+TAB_ORDER = ["overview", "trends", "categories", "advanced"]
+DEFAULT_TAB = "overview" 
