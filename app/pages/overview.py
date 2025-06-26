@@ -94,11 +94,11 @@ class OverviewPage(BasePage):
     
     def _render_detailed_analysis(self, df: pd.DataFrame, filters: Dict[str, Any]) -> None:
         """Render detailed analysis charts."""
-        # Import chart configuration controls
-        from app.ui.components import create_chart_configuration_controls, display_savings_rate_insights
+        # Import savings rate insights
+        from app.ui.components import display_savings_rate_insights
         
-        # Create chart configuration controls
-        chart_config = create_chart_configuration_controls()
+        # Get chart configuration from filters (created outside tabs)
+        chart_config = filters.get("chart_config", {})
         
         # Third row - Monthly Savings Rate Trends (full width with enhanced features)
         def enhanced_savings_chart(df_input):

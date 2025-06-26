@@ -5,10 +5,9 @@ Run with: streamlit run app/dashboard.py
 
 import streamlit as st
 import pandas as pd
-from typing import Dict, Any, List
+from typing import Dict, Any
 
 # Import our modules
-from app.pages import get_available_pages
 from app.config import PAGE_CONFIG
 from app.data.loader import get_data_for_dashboard
 from app.data.preprocess import preprocess_data
@@ -128,46 +127,6 @@ def load_and_process_data(uploaded_file=None) -> tuple[pd.DataFrame, Dict[str, p
     
     return st.session_state.df_processed, st.session_state.dim_tables
 
-def render_tabbed_interface(df_filtered: pd.DataFrame, filters: Dict[str, Any]) -> None:
-    """
-    Render the tabbed interface with available pages.
-    
-    Args:
-        df_filtered: The filtered transaction data
-        filters: Current filter selections
-    """
-    # Get pages that should be displayed
-    pages = get_available_pages(df_filtered)
-    
-    if not pages:
-        st.error("❌ No analysis pages available for the current data selection.")
-        st.info("💡 Try adjusting your filters or uploading more data.")
-        return
-    
-    # Create tab navigation
-    tab_names = [f"{page.icon} {page.name}" for page in pages]
-    tabs = st.tabs(tab_names)
-    
-    # Render each page in its corresponding tab
-    for tab, page in zip(tabs, pages):
-        with tab:
-            with st.container():
-                # Add loading state
-                with st.spinner(f"Loading {page.name}..."):
-                    try:
-                        # Check if page has minimum data
-                        if len(df_filtered) < page.get_min_data_points():
-                            st.warning(f"⚠️ {page.name} requires at least {page.get_min_data_points()} data points.")
-                            continue
-                        
-                        page.render(df_filtered, filters)
-                        
-                    except Exception as e:
-                        st.error(f"❌ Error loading {page.name}")
-                        error_details = st.empty()
-                        if st.button(f"Show details", key=f"details_{page.key}"):
-                            error_details.exception(e)
-
 def create_main_dashboard():
     """Create the main dashboard interface."""
     
@@ -203,6 +162,9 @@ def create_main_dashboard():
     # Add the uploaded file to filters for consistency
     filters["uploaded_file"] = uploaded_file
     
+    # Create chart configuration controls
+    chart_config = create_chart_configuration_controls()
+    
     # Apply filters to data
     df_filtered = filter_data_by_selections(
         df_processed,
@@ -216,99 +178,96 @@ def create_main_dashboard():
     # Display filter summary
     display_filter_summary(filters, df_filtered, df_processed)
     
-    # Create chart configuration controls (outside of tabs to avoid key conflicts)
-    chart_config = create_chart_configuration_controls()
-    # Add chart config to filters for pages to use
-    filters["chart_config"] = chart_config
+    # Display KPI cards
+    display_kpi_cards(df_filtered)
     
     st.divider()
     
-    # NEW: Replace all the chart sections with tabbed interface
-    render_tabbed_interface(df_filtered, filters)
+    # Main charts section
+    st.header("📊 Financial Analysis")
     
-    # IMPORTANT: Keep these sections commented for reference during migration
-    # # Create chart columns
-    # col1, col2 = st.columns(2)
-    # 
-    # with col1:
-    #     create_chart_container(
-    #         "📈 Monthly Trends",
-    #         create_monthly_trend_chart,
-    #         df_filtered
-    #     )
-    # 
-    # with col2:
-    #     create_chart_container(
-    #         "🏆 Top Expense Categories",
-    #         create_category_expense_chart,
-    #         df_filtered
-    #     )
-    # 
-    # # Second row of charts
-    # col3, col4 = st.columns(2)
-    # 
-    # with col3:
-    #     create_chart_container(
-    #         "📊 Savings Rate",
-    #         create_savings_rate_gauge,
-    #         df_filtered
-    #     )
-    # 
-    # with col4:
-    #     create_chart_container(
-    #         "🥧 Expense Distribution",
-    #         create_expense_distribution_pie,
-    #         df_filtered
-    #     )
-    # 
-    # # Third row - Monthly Savings Rate Trends (full width with enhanced features)
-    # def enhanced_savings_chart(df):
-    #     return create_monthly_savings_rate_chart_enhanced(
-    #         df,
-    #         target_rate=chart_config.get("target_rate", 10.0),
-    #         show_dual_axis=chart_config.get("show_dual_axis", False),
-    #         show_moving_average=chart_config.get("show_moving_average", True),
-    #         ma_periods=chart_config.get("ma_periods", 3)
-    #     )
-    # 
-    # create_chart_container(
-    #     "📊 Monthly Savings Rate Trends",
-    #     enhanced_savings_chart,
-    #     df_filtered
-    # )
-    # 
-    # # Add insights section for savings rate
-    # with st.expander("💡 Savings Rate Insights", expanded=False):
-    #     display_savings_rate_insights(df_filtered, chart_config.get("target_rate", 10.0))
-    # 
-    # # Fourth row - Cumulative Balance (full width)
-    # create_chart_container(
-    #     "📈 Cumulative Balance",
-    #     create_cumulative_balance_chart,
-    #     df_filtered
-    # )
-    # 
-    # # Optional: Daily spending heatmap (full width)
-    # if len(df_filtered) > 30:  # Only show if we have enough data
-    #     create_chart_container(
-    #         "🔥 Daily Spending Heatmap",
-    #         create_daily_spending_heatmap,
-    #         df_filtered
-    #     )
-    # 
-    # st.divider()
-    # 
-    # # Data sections
-    # st.header("📋 Data Details")
-    # 
-    # # Data summary
-    # display_data_summary(df_filtered)
-    # 
-    # # Detailed data table
-    # create_data_table_section(df_filtered)
-    # 
-    # # Export functionality
-    # create_export_section(df_filtered)
+    # Create chart columns
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        create_chart_container(
+            "📈 Monthly Trends",
+            create_monthly_trend_chart,
+            df_filtered
+        )
+    
+    with col2:
+        create_chart_container(
+            "🏆 Top Expense Categories",
+            create_category_expense_chart,
+            df_filtered
+        )
+    
+    # Second row of charts
+    col3, col4 = st.columns(2)
+    
+    with col3:
+        create_chart_container(
+            "📊 Savings Rate",
+            create_savings_rate_gauge,
+            df_filtered
+        )
+    
+    with col4:
+        create_chart_container(
+            "🥧 Expense Distribution",
+            create_expense_distribution_pie,
+            df_filtered
+        )
+    
+    # Third row - Monthly Savings Rate Trends (full width with enhanced features)
+    def enhanced_savings_chart(df):
+        return create_monthly_savings_rate_chart_enhanced(
+            df,
+            target_rate=chart_config.get("target_rate", 10.0),
+            show_dual_axis=chart_config.get("show_dual_axis", False),
+            show_moving_average=chart_config.get("show_moving_average", True),
+            ma_periods=chart_config.get("ma_periods", 3)
+        )
+    
+    create_chart_container(
+        "📊 Monthly Savings Rate Trends",
+        enhanced_savings_chart,
+        df_filtered
+    )
+    
+    # Add insights section for savings rate
+    with st.expander("💡 Savings Rate Insights", expanded=False):
+        display_savings_rate_insights(df_filtered, chart_config.get("target_rate", 10.0))
+    
+    # Fourth row - Cumulative Balance (full width)
+    create_chart_container(
+        "📈 Cumulative Balance",
+        create_cumulative_balance_chart,
+        df_filtered
+    )
+    
+    # Optional: Daily spending heatmap (full width)
+    if len(df_filtered) > 30:  # Only show if we have enough data
+        create_chart_container(
+            "🔥 Daily Spending Heatmap",
+            create_daily_spending_heatmap,
+            df_filtered
+        )
+    
+    st.divider()
+    
+    # Data sections
+    st.header("📋 Data Details")
+    
+    # Data summary
+    display_data_summary(df_filtered)
+    
+    # Detailed data table
+    create_data_table_section(df_filtered)
+    
+    # Export functionality
+    create_export_section(df_filtered)
     
     # Footer
     st.divider()
