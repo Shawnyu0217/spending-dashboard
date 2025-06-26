@@ -7,7 +7,7 @@ from typing import Dict, List
 
 # File paths
 DEFAULT_DATA_PATH = "data"
-SAMPLE_FILE_NAME = "随手记家庭账本20250614165637.xlsx"
+SAMPLE_FILE_NAME = "sample.xlsx"
 SAMPLE_FILE_PATH = os.path.join(DEFAULT_DATA_PATH, SAMPLE_FILE_NAME)
 
 # Column name mappings (Chinese to English)

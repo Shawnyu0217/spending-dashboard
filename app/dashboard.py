@@ -155,11 +155,6 @@ def render_tabbed_interface(df_filtered: pd.DataFrame, filters: Dict[str, Any]) 
                 # Add loading state
                 with st.spinner(f"Loading {page.name}..."):
                     try:
-                        # Check if page has minimum data
-                        if len(df_filtered) < page.get_min_data_points():
-                            st.warning(f"⚠️ {page.name} requires at least {page.get_min_data_points()} data points.")
-                            continue
-                        
                         page.render(df_filtered, filters)
                         
                     except Exception as e:
