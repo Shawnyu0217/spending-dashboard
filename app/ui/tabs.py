@@ -14,7 +14,10 @@ from ..features.viz import (
     create_savings_rate_gauge,
     create_monthly_savings_rate_chart_enhanced,
     create_cumulative_balance_chart,
-    create_expense_distribution_pie
+    create_expense_distribution_pie,
+    create_hourly_spending_heatmap,
+    create_time_of_day_spending_chart,
+    create_category_by_time_heatmap
 )
 from .components import (
     display_kpi_cards,
@@ -22,7 +25,8 @@ from .components import (
     create_data_table_section,
     create_export_section,
     create_chart_container,
-    display_savings_rate_insights
+    display_savings_rate_insights,
+    display_time_pattern_insights
 )
 
 
@@ -125,14 +129,66 @@ def render_trends_tab(df_filtered: pd.DataFrame):
 
     st.divider()
 
-    # Daily spending heatmap - show if enough data
-    if len(df_filtered) > 30:
+    # === NEW: Time-based Spending Pattern Analysis ===
+    st.markdown("### ⏰ Time-Based Spending Patterns")
+    st.markdown("Discover when you spend most during the week and day.")
+
+    # Check if we have time data
+    has_time_data = "hour" in df_filtered.columns and "time_of_day" in df_filtered.columns
+
+    if has_time_data and len(df_filtered) > 30:
+        # Hourly heatmap - full width
         create_chart_container(
-            "🔥 Daily Spending Heatmap",
-            create_daily_spending_heatmap,
+            "🔥 Hourly Spending Heatmap (Hour × Day of Week)",
+            create_hourly_spending_heatmap,
             df_filtered,
-            chart_key="trends_daily_heatmap"
+            chart_key="trends_hourly_heatmap"
         )
+
+        st.divider()
+
+        # Time of day and category charts side by side
+        col1, col2 = st.columns(2)
+
+        with col1:
+            create_chart_container(
+                "🌅 Spending by Time of Day",
+                create_time_of_day_spending_chart,
+                df_filtered,
+                chart_key="trends_time_of_day"
+            )
+
+        with col2:
+            create_chart_container(
+                "🏷️ Categories by Time",
+                create_category_by_time_heatmap,
+                df_filtered,
+                chart_key="trends_category_time"
+            )
+
+        st.divider()
+
+        # Time pattern insights
+        with st.expander("💡 Detailed Time Pattern Insights", expanded=True):
+            display_time_pattern_insights(df_filtered)
+
+    elif has_time_data:
+        st.info("📊 Time-based analysis requires at least 30 transactions. Add more data or adjust filters.")
+    else:
+        st.warning("⚠️ Time data not available. Please ensure your data includes timestamp information.")
+
+    st.divider()
+
+    # Original day-level heatmap (kept for backward compatibility)
+    if len(df_filtered) > 30:
+        with st.expander("📅 Day-Level Spending Heatmap (Week × Day)", expanded=False):
+            st.markdown("*Legacy view showing spending by week of year and day of week*")
+            create_chart_container(
+                "Daily Spending Heatmap",
+                create_daily_spending_heatmap,
+                df_filtered,
+                chart_key="trends_daily_heatmap_legacy"
+            )
     else:
         st.info("📊 Daily spending heatmap requires at least 30 transactions. Add more data or adjust filters.")
 

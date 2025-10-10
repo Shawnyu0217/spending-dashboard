@@ -530,3 +530,115 @@ def create_tab_container(content_function, *args, **kwargs):
         st.error(f"Error rendering tab content: {str(e)}")
         with st.expander("Error Details"):
             st.code(str(e))
+
+def display_time_pattern_insights(df: pd.DataFrame):
+    """
+    Display time-based spending pattern insights.
+
+    Args:
+        df: Processed DataFrame with time components
+    """
+    from ..features.kpis import calculate_time_pattern_stats
+
+    stats = calculate_time_pattern_stats(df)
+
+    if not stats or "error" in stats:
+        st.info("📊 Time pattern data not available or insufficient data")
+        if "error" in stats:
+            st.warning(f"⚠️ {stats['error']}")
+        return
+
+    st.subheader("⏰ Time Pattern Insights")
+
+    # Key metrics row
+    col1, col2, col3, col4 = st.columns(4)
+
+    with col1:
+        peak_hour = stats.get("peak_spending_hour", {})
+        if peak_hour:
+            st.metric(
+                "Peak Spending Hour",
+                peak_hour.get("hour_display", "N/A"),
+                delta=f"${peak_hour.get('total_amount', 0):,.0f}"
+            )
+
+    with col2:
+        peak_day = stats.get("peak_spending_weekday", {})
+        if peak_day:
+            st.metric(
+                "Peak Spending Day",
+                peak_day.get("weekday", "N/A"),
+                delta=f"${peak_day.get('total_amount', 0):,.0f}"
+            )
+
+    with col3:
+        peak_combo = stats.get("peak_day_hour_combo", {})
+        if peak_combo:
+            st.metric(
+                "Peak Time Combo",
+                f"{peak_combo.get('weekday', 'N/A')}",
+                delta=f"{peak_combo.get('hour_display', 'N/A')}"
+            )
+
+    with col4:
+        weekend_vs = stats.get("weekend_vs_weekday", {}).get("comparison", {})
+        if weekend_vs:
+            diff_pct = weekend_vs.get("difference_pct", 0)
+            spends_more = weekend_vs.get("weekend_spends_more", False)
+            st.metric(
+                "Weekend vs Weekday",
+                "Weekend" if spends_more else "Weekday",
+                delta=f"{abs(diff_pct):,.1f}% {'more' if spends_more else 'less'}"
+            )
+
+    st.divider()
+
+    # Detailed breakdown
+    col5, col6 = st.columns(2)
+
+    with col5:
+        st.markdown("### 🌅 Time of Day Breakdown")
+        time_data = stats.get("spending_by_time_of_day", {})
+        if time_data:
+            for time_period in ["Morning", "Afternoon", "Evening", "Night"]:
+                if time_period in time_data:
+                    data = time_data[time_period]
+                    st.write(f"**{time_period}** (6h blocks)")
+                    st.write(f"• Total: ${data['total_amount']:,.0f} ({data['percentage']:.1f}%)")
+                    st.write(f"• Transactions: {data['transaction_count']}")
+                    st.write(f"• Avg: ${data['avg_amount']:,.2f}")
+                    st.divider()
+
+    with col6:
+        st.markdown("### 🗓️ Weekend vs Weekday")
+        weekend_data = stats.get("weekend_vs_weekday", {})
+        if weekend_data:
+            weekend = weekend_data.get("weekend", {})
+            weekday = weekend_data.get("weekday", {})
+
+            st.write("**Weekend (Sat-Sun)**")
+            st.write(f"• Total: ${weekend.get('total_amount', 0):,.0f}")
+            st.write(f"• Daily Avg: ${weekend.get('avg_per_day', 0):,.2f}")
+            st.write(f"• Transactions: {weekend.get('transaction_count', 0)}")
+
+            st.divider()
+
+            st.write("**Weekday (Mon-Fri)**")
+            st.write(f"• Total: ${weekday.get('total_amount', 0):,.0f}")
+            st.write(f"• Daily Avg: ${weekday.get('avg_per_day', 0):,.2f}")
+            st.write(f"• Transactions: {weekday.get('transaction_count', 0)}")
+
+    # Most active hours
+    st.divider()
+    st.markdown("### 🔥 Most Active Shopping Hours")
+
+    most_active = stats.get("most_active_hours", [])
+    if most_active:
+        active_cols = st.columns(5)
+        for idx, hour_data in enumerate(most_active[:5]):
+            with active_cols[idx]:
+                st.metric(
+                    f"#{idx+1}: {hour_data.get('hour', 0):02d}:00",
+                    f"{hour_data.get('transaction_count', 0)} txns",
+                    delta=f"${hour_data.get('total_amount', 0):,.0f}"
+                )

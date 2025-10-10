@@ -413,4 +413,143 @@ def get_enhanced_kpi_metrics(df: pd.DataFrame, target_rate: float = 10.0) -> Dic
         "target_rate": target_rate
     }
     
-    return enhanced_metrics 
+    return enhanced_metrics
+
+def calculate_time_pattern_stats(df: pd.DataFrame) -> Dict[str, Any]:
+    """
+    Calculate spending pattern statistics based on time of day and day of week.
+
+    Args:
+        df: Processed DataFrame with time components (hour, time_of_day, is_weekend)
+
+    Returns:
+        Dictionary with time-based spending pattern statistics
+    """
+    if df.empty:
+        return {}
+
+    # Check for required columns
+    required_cols = ["hour", "time_of_day", "is_weekend", "weekday"]
+    missing_cols = [col for col in required_cols if col not in df.columns]
+    if missing_cols:
+        return {"error": f"Missing required columns: {missing_cols}"}
+
+    expenses_df = df[df["transaction_type"] == "expense"].copy()
+
+    if expenses_df.empty:
+        return {"error": "No expense data available"}
+
+    stats = {}
+
+    # 1. Hour-based statistics
+    hourly_spending = expenses_df.groupby("hour").agg({
+        "amount": ["sum", "count", "mean"]
+    }).reset_index()
+    hourly_spending.columns = ["hour", "total_amount", "transaction_count", "avg_amount"]
+
+    peak_hour = hourly_spending.loc[hourly_spending["total_amount"].idxmax()]
+    stats["peak_spending_hour"] = {
+        "hour": int(peak_hour["hour"]),
+        "hour_display": f"{int(peak_hour['hour']):02d}:00",
+        "total_amount": float(peak_hour["total_amount"]),
+        "transaction_count": int(peak_hour["transaction_count"]),
+        "avg_amount": float(peak_hour["avg_amount"])
+    }
+
+    # 2. Time of day statistics
+    time_of_day_spending = expenses_df.groupby("time_of_day").agg({
+        "amount": ["sum", "count", "mean"]
+    }).reset_index()
+    time_of_day_spending.columns = ["time_of_day", "total_amount", "transaction_count", "avg_amount"]
+
+    stats["spending_by_time_of_day"] = {}
+    for _, row in time_of_day_spending.iterrows():
+        stats["spending_by_time_of_day"][str(row["time_of_day"])] = {
+            "total_amount": float(row["total_amount"]),
+            "transaction_count": int(row["transaction_count"]),
+            "avg_amount": float(row["avg_amount"]),
+            "percentage": float((row["total_amount"] / expenses_df["amount"].sum()) * 100)
+        }
+
+    # 3. Day of week statistics
+    weekday_spending = expenses_df.groupby("weekday").agg({
+        "amount": ["sum", "count", "mean"]
+    }).reset_index()
+    weekday_spending.columns = ["weekday", "total_amount", "transaction_count", "avg_amount"]
+
+    # Reorder weekdays
+    weekday_order = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
+    weekday_spending["weekday"] = pd.Categorical(weekday_spending["weekday"], categories=weekday_order, ordered=True)
+    weekday_spending = weekday_spending.sort_values("weekday")
+
+    peak_weekday = weekday_spending.loc[weekday_spending["total_amount"].idxmax()]
+    stats["peak_spending_weekday"] = {
+        "weekday": str(peak_weekday["weekday"]),
+        "total_amount": float(peak_weekday["total_amount"]),
+        "transaction_count": int(peak_weekday["transaction_count"]),
+        "avg_amount": float(peak_weekday["avg_amount"])
+    }
+
+    stats["spending_by_weekday"] = weekday_spending.to_dict('records')
+
+    # 4. Weekend vs Weekday comparison
+    weekend_expenses = expenses_df[expenses_df["is_weekend"]]
+    weekday_expenses = expenses_df[~expenses_df["is_weekend"]]
+
+    weekend_total = weekend_expenses["amount"].sum() if not weekend_expenses.empty else 0
+    weekday_total = weekday_expenses["amount"].sum() if not weekday_expenses.empty else 0
+    weekend_count = len(weekend_expenses)
+    weekday_count = len(weekday_expenses)
+
+    # Calculate per-day averages
+    weekend_days = 2  # Saturday and Sunday
+    weekday_days = 5  # Monday to Friday
+
+    # Get actual number of unique weekend and weekday dates
+    if not weekend_expenses.empty and "date" in weekend_expenses.columns:
+        actual_weekend_days = weekend_expenses["date"].dt.date.nunique()
+        weekend_avg_per_day = weekend_total / actual_weekend_days if actual_weekend_days > 0 else 0
+    else:
+        weekend_avg_per_day = 0
+
+    if not weekday_expenses.empty and "date" in weekday_expenses.columns:
+        actual_weekday_days = weekday_expenses["date"].dt.date.nunique()
+        weekday_avg_per_day = weekday_total / actual_weekday_days if actual_weekday_days > 0 else 0
+    else:
+        weekday_avg_per_day = 0
+
+    stats["weekend_vs_weekday"] = {
+        "weekend": {
+            "total_amount": float(weekend_total),
+            "transaction_count": int(weekend_count),
+            "avg_per_day": float(weekend_avg_per_day),
+            "avg_per_transaction": float(weekend_expenses["amount"].mean()) if not weekend_expenses.empty else 0
+        },
+        "weekday": {
+            "total_amount": float(weekday_total),
+            "transaction_count": int(weekday_count),
+            "avg_per_day": float(weekday_avg_per_day),
+            "avg_per_transaction": float(weekday_expenses["amount"].mean()) if not weekday_expenses.empty else 0
+        },
+        "comparison": {
+            "weekend_spends_more": weekend_avg_per_day > weekday_avg_per_day,
+            "difference_pct": float(((weekend_avg_per_day - weekday_avg_per_day) / weekday_avg_per_day * 100) if weekday_avg_per_day > 0 else 0)
+        }
+    }
+
+    # 5. Peak spending time combination (day + hour)
+    day_hour_spending = expenses_df.groupby(["weekday", "hour"])["amount"].sum().reset_index()
+    if not day_hour_spending.empty:
+        peak_combo = day_hour_spending.loc[day_hour_spending["amount"].idxmax()]
+        stats["peak_day_hour_combo"] = {
+            "weekday": str(peak_combo["weekday"]),
+            "hour": int(peak_combo["hour"]),
+            "hour_display": f"{int(peak_combo['hour']):02d}:00",
+            "total_amount": float(peak_combo["amount"])
+        }
+
+    # 6. Most active hours (top 5)
+    top_hours = hourly_spending.nlargest(5, "transaction_count")[["hour", "transaction_count", "total_amount"]]
+    stats["most_active_hours"] = top_hours.to_dict('records')
+
+    return stats 
