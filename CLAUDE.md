@@ -10,11 +10,11 @@ This is a Streamlit-based personal spending dashboard that analyzes financial da
 
 ### Running the Application
 ```bash
-# Main entry point
-streamlit run app/dashboard.py
+# Main entry point (recommended)
+streamlit run run_dashboard.py
 
-# Alternative entry point
-python run_dashboard.py
+# Alternative entry point (direct)
+streamlit run app/dashboard.py
 ```
 
 ### Testing
@@ -75,6 +75,7 @@ pip install -r requirements.txt
   - `viz.py`: Chart creation using Plotly
 - **app/ui/**: Streamlit UI components
   - `components.py`: Reusable UI elements and layout
+  - `tabs.py`: Tab-based dashboard organization
 - **app/config.py**: Configuration constants and mappings
 - **data/**: Sample data files for testing and development
 - **requirements.txt**: Python package dependencies
@@ -90,12 +91,43 @@ pip install -r requirements.txt
 5. Data filtered using `filters.py` based on user selections
 6. KPIs calculated in `kpis.py`
 7. Charts generated in `viz.py`
-8. UI assembled in `dashboard.py` using `components.py`
+8. UI assembled in `dashboard.py` using tabbed interface from `tabs.py`
+
+### Dashboard UI Organization
+The dashboard uses a **tab-based interface** to organize content into focused analytical views:
+
+- **📊 Overview Tab**: High-level financial summary
+  - 6 KPI metric cards (Income, Expenses, Savings, Savings Rate, Top Category, Daily Avg)
+  - Monthly trends chart (Income vs Expenses vs Net Savings)
+  - Top expense categories bar chart
+  - Quick statistics (records, date range, categories, coverage)
+
+- **📈 Trends Tab**: Time-series analysis
+  - Detailed monthly trends chart
+  - Cumulative balance over time
+  - Daily spending heatmap (if sufficient data)
+
+- **🏷️ Categories Tab**: Category-focused analysis
+  - Top expense categories bar chart
+  - Expense distribution pie chart
+  - Detailed category statistics table
+
+- **💰 Savings Tab**: Savings performance insights
+  - Savings rate gauge chart
+  - Summary savings metrics
+  - Enhanced monthly savings rate trends (with moving average, target lines)
+  - Detailed savings rate analysis (best/worst months, consistency score)
+
+- **📋 Data & Export Tab**: Raw data access
+  - Filter summary and data coverage statistics
+  - Searchable transaction data table
+  - Export functionality (CSV, summary text)
 
 ### Key Design Patterns
 - **Pipeline Pattern**: Modular data processing using `PreprocessingPipeline` with pluggable transformers
 - **Transformer Pattern**: Each data transformation step implemented as a separate `BaseTransformer` class
 - **Protocol-based Design**: `DataTransformer` protocol ensures consistent transformer interfaces
+- **Tab-based UI Pattern**: Content organized into focused tabs for better UX and reduced information overload
 - **Caching**: Streamlit `@st.cache_data` decorator used for data loading
 - **Separation of Concerns**: Clear separation between data, business logic, and UI
 - **Configuration-driven**: Chinese-to-English mappings centralized in `config.py`

@@ -347,21 +347,24 @@ def show_success_message(message: str):
     """
     st.success(f"✅ {message}")
 
-def create_chart_container(title: str, chart_func, *args, **kwargs):
+def create_chart_container(title: str, chart_func, *args, chart_key: str = None, **kwargs):
     """
     Create a container for charts with error handling.
-    
+
     Args:
         title: Chart title
         chart_func: Function that creates the chart
         *args: Arguments for chart function
+        chart_key: Unique key for the plotly chart (prevents duplicate IDs)
         **kwargs: Keyword arguments for chart function
     """
     try:
         with st.container():
             st.subheader(title)
             fig = chart_func(*args, **kwargs)
-            st.plotly_chart(fig, use_container_width=True)
+            # Use chart_key if provided, otherwise generate from title
+            key = chart_key if chart_key else f"chart_{title.lower().replace(' ', '_').replace('&', 'and')}"
+            st.plotly_chart(fig, use_container_width=True, key=key)
     except Exception as e:
         st.error(f"Error creating chart '{title}': {str(e)}")
         with st.expander("Chart Error Details"):
@@ -438,46 +441,46 @@ def create_chart_configuration_controls() -> Dict[str, Any]:
 def display_savings_rate_insights(df: pd.DataFrame, target_rate: float = 10.0):
     """
     Display insights and analysis for savings rate performance.
-    
+
     Args:
         df: Processed DataFrame
         target_rate: Target savings rate percentage
     """
     metrics = get_enhanced_kpi_metrics(df, target_rate)
-    
+
     if not metrics.get("savings_rate_stats") or not metrics.get("best_worst_analysis"):
         st.info("📊 Insufficient data for detailed savings rate analysis")
         return
-    
+
     stats = metrics["savings_rate_stats"]
     analysis = metrics["best_worst_analysis"]
-    
+
     # Performance overview
     st.subheader("📈 Savings Rate Performance")
-    
+
     col1, col2, col3, col4 = st.columns(4)
-    
+
     with col1:
         st.metric(
             "Average Rate",
             f"{stats['average_savings_rate']:.1f}%",
             delta=f"{stats['average_savings_rate'] - target_rate:+.1f}% vs target"
         )
-    
+
     with col2:
         st.metric(
             "Best Month",
             f"{stats['max_savings_rate']:.1f}%",
             delta=f"{analysis['best_month']['month']}"
         )
-    
+
     with col3:
         st.metric(
             "Target Achievement",
             f"{stats['pct_months_above_target_10']:.0f}%",
             delta=f"{stats['months_above_target_10']}/{stats['total_months']} months"
         )
-    
+
     with col4:
         consistency_color = "normal" if stats['consistency_score'] > 80 else "inverse"
         st.metric(
@@ -486,27 +489,44 @@ def display_savings_rate_insights(df: pd.DataFrame, target_rate: float = 10.0):
             delta="Higher is better",
             delta_color=consistency_color
         )
-    
+
     # Best and worst months
     col5, col6 = st.columns(2)
-    
+
     with col5:
         st.success("🏆 **Best Performance**")
         best = analysis["best_month"]
         st.write(f"📅 **Month:** {best['month']}")
         st.write(f"📊 **Rate:** {best['savings_rate']:.1f}%")
         st.write(f"💰 **Saved:** ${best['net_savings']:,.0f}")
-    
+
     with col6:
         st.error("📉 **Needs Improvement**")
         worst = analysis["worst_month"]
         st.write(f"📅 **Month:** {worst['month']}")
         st.write(f"📊 **Rate:** {worst['savings_rate']:.1f}%")
         st.write(f"💰 **Amount:** ${worst['net_savings']:,.0f}")
-    
+
     # Improvement suggestions
     if "improvement_potential" in analysis:
         st.info("💡 **Improvement Opportunities**")
         potential = analysis["improvement_potential"]
         st.write(f"• {potential['months_below_average']} months below average")
         st.write(f"• Average shortfall: {potential['average_shortfall']:.1f}%")
+
+def create_tab_container(content_function, *args, **kwargs):
+    """
+    Create a container for tab content with consistent styling.
+
+    Args:
+        content_function: Function that renders the tab content
+        *args: Arguments for content function
+        **kwargs: Keyword arguments for content function
+    """
+    try:
+        with st.container():
+            content_function(*args, **kwargs)
+    except Exception as e:
+        st.error(f"Error rendering tab content: {str(e)}")
+        with st.expander("Error Details"):
+            st.code(str(e))
