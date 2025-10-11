@@ -114,28 +114,69 @@ def top_expense_categories(df: pd.DataFrame, n: int = 10) -> pd.DataFrame:
     
     return top_categories.sort_values("total_amount", ascending=False).head(n)
 
-def monthly_summary(df: pd.DataFrame) -> pd.DataFrame:
-    """Create monthly summary statistics."""
+def monthly_summary(df: pd.DataFrame, include_comparisons: bool = False) -> pd.DataFrame:
+    """
+    Create monthly summary statistics with optional YoY and MoM comparisons.
+
+    Args:
+        df: Processed DataFrame
+        include_comparisons: Whether to include YoY and MoM comparison metrics
+
+    Returns:
+        DataFrame with monthly statistics and optional comparison metrics
+    """
     if df.empty or "ym_str" not in df.columns:
         return pd.DataFrame()
-    
+
     monthly_stats = df.groupby("ym_str").agg({
         "income_amount": "sum",
-        "expense_amount": "sum", 
+        "expense_amount": "sum",
         "net_amount": "sum",
         "transaction_type": "count"
     }).reset_index()
-    
+
     monthly_stats.columns = ["month", "income", "expenses", "net_savings", "transaction_count"]
-    
+
     # Calculate savings rate
     monthly_stats["savings_rate"] = np.where(
         monthly_stats["income"] > 0,
         (monthly_stats["net_savings"] / monthly_stats["income"]) * 100,
         0
     )
-    
-    return monthly_stats.sort_values("month")
+
+    monthly_stats = monthly_stats.sort_values("month")
+
+    # Add comparison metrics if requested
+    if include_comparisons and len(monthly_stats) > 1:
+        # Extract year and month for comparisons
+        monthly_stats["year"] = monthly_stats["month"].str[:4].astype(int)
+        monthly_stats["month_num"] = monthly_stats["month"].str[5:7].astype(int)
+
+        # Month-over-Month comparisons
+        for col in ["income", "expenses", "net_savings", "savings_rate"]:
+            monthly_stats[f"{col}_mom_change"] = monthly_stats[col].diff()
+            monthly_stats[f"{col}_mom_pct"] = (
+                monthly_stats[f"{col}_mom_change"] / monthly_stats[col].shift(1) * 100
+            ).fillna(0)
+
+        # Year-over-Year comparisons
+        for col in ["income", "expenses", "net_savings", "savings_rate"]:
+            # Create a mapping of (year, month) -> value for quick lookup
+            yoy_map = monthly_stats.set_index(["year", "month_num"])[col].to_dict()
+
+            def get_yoy_value(row):
+                prev_year_key = (row["year"] - 1, row["month_num"])
+                return yoy_map.get(prev_year_key, None)
+
+            monthly_stats[f"{col}_yoy_prev"] = monthly_stats.apply(get_yoy_value, axis=1)
+            monthly_stats[f"{col}_yoy_change"] = monthly_stats[col] - monthly_stats[f"{col}_yoy_prev"]
+            monthly_stats[f"{col}_yoy_pct"] = np.where(
+                monthly_stats[f"{col}_yoy_prev"].notna() & (monthly_stats[f"{col}_yoy_prev"] != 0),
+                (monthly_stats[f"{col}_yoy_change"] / monthly_stats[f"{col}_yoy_prev"]) * 100,
+                np.nan
+            )
+
+    return monthly_stats
 
 def account_summary(df: pd.DataFrame) -> pd.DataFrame:
     """Create account-wise summary."""
@@ -552,4 +593,194 @@ def calculate_time_pattern_stats(df: pd.DataFrame) -> Dict[str, Any]:
     top_hours = hourly_spending.nlargest(5, "transaction_count")[["hour", "transaction_count", "total_amount"]]
     stats["most_active_hours"] = top_hours.to_dict('records')
 
-    return stats 
+    return stats
+
+
+def calculate_yoy_metrics(df: pd.DataFrame) -> Dict[str, Any]:
+    """
+    Calculate Year-over-Year comparison metrics for the latest available month.
+
+    Args:
+        df: Processed DataFrame with ym_str column
+
+    Returns:
+        Dictionary with YoY metrics for latest month vs same month last year
+    """
+    monthly_data = monthly_summary(df, include_comparisons=True)
+
+    if monthly_data.empty or len(monthly_data) < 2:
+        return {}
+
+    # Get the latest month with YoY data available
+    latest_with_yoy = monthly_data[monthly_data["income_yoy_prev"].notna()]
+
+    if latest_with_yoy.empty:
+        return {"error": "Insufficient data for year-over-year comparison"}
+
+    latest_row = latest_with_yoy.iloc[-1]
+
+    yoy_metrics = {
+        "latest_month": latest_row["month"],
+        "income": {
+            "current": latest_row["income"],
+            "previous_year": latest_row["income_yoy_prev"],
+            "change": latest_row["income_yoy_change"],
+            "change_pct": latest_row["income_yoy_pct"]
+        },
+        "expenses": {
+            "current": latest_row["expenses"],
+            "previous_year": latest_row["expenses_yoy_prev"],
+            "change": latest_row["expenses_yoy_change"],
+            "change_pct": latest_row["expenses_yoy_pct"]
+        },
+        "net_savings": {
+            "current": latest_row["net_savings"],
+            "previous_year": latest_row["net_savings_yoy_prev"],
+            "change": latest_row["net_savings_yoy_change"],
+            "change_pct": latest_row["net_savings_yoy_pct"]
+        },
+        "savings_rate": {
+            "current": latest_row["savings_rate"],
+            "previous_year": latest_row["savings_rate_yoy_prev"],
+            "change": latest_row["savings_rate_yoy_change"],
+            "change_pct": latest_row["savings_rate_yoy_pct"]
+        }
+    }
+
+    return yoy_metrics
+
+
+def calculate_mom_metrics(df: pd.DataFrame) -> Dict[str, Any]:
+    """
+    Calculate Month-over-Month comparison metrics for the latest available month.
+
+    Args:
+        df: Processed DataFrame with ym_str column
+
+    Returns:
+        Dictionary with MoM metrics for latest month vs previous month
+    """
+    monthly_data = monthly_summary(df, include_comparisons=True)
+
+    if monthly_data.empty or len(monthly_data) < 2:
+        return {}
+
+    # Get the latest month (MoM always available for 2nd month onward)
+    latest_row = monthly_data.iloc[-1]
+    previous_row = monthly_data.iloc[-2]
+
+    mom_metrics = {
+        "latest_month": latest_row["month"],
+        "previous_month": previous_row["month"],
+        "income": {
+            "current": latest_row["income"],
+            "previous": previous_row["income"],
+            "change": latest_row["income_mom_change"],
+            "change_pct": latest_row["income_mom_pct"]
+        },
+        "expenses": {
+            "current": latest_row["expenses"],
+            "previous": previous_row["expenses"],
+            "change": latest_row["expenses_mom_change"],
+            "change_pct": latest_row["expenses_mom_pct"]
+        },
+        "net_savings": {
+            "current": latest_row["net_savings"],
+            "previous": previous_row["net_savings"],
+            "change": latest_row["net_savings_mom_change"],
+            "change_pct": latest_row["net_savings_mom_pct"]
+        },
+        "savings_rate": {
+            "current": latest_row["savings_rate"],
+            "previous": previous_row["savings_rate"],
+            "change": latest_row["savings_rate_mom_change"],
+            "change_pct": latest_row["savings_rate_mom_pct"]
+        }
+    }
+
+    return mom_metrics
+
+
+def analyze_original_categories(df: pd.DataFrame, transaction_type: str = "expense") -> pd.DataFrame:
+    """
+    Analyze spending by original Chinese category and subcategory names.
+
+    Args:
+        df: Processed DataFrame with original 'category' and 'subcategory' columns
+        transaction_type: Type of transaction to analyze ('expense', 'income', or 'all')
+
+    Returns:
+        DataFrame with category, subcategory, amount, count, avg, and percentage
+    """
+    if df.empty:
+        return pd.DataFrame()
+
+    # Filter by transaction type if specified
+    if transaction_type != "all":
+        filtered_df = df[df["transaction_type"] == transaction_type].copy()
+    else:
+        filtered_df = df.copy()
+
+    if filtered_df.empty:
+        return pd.DataFrame()
+
+    # Check for required columns
+    if "category" not in filtered_df.columns:
+        return pd.DataFrame()
+
+    # Handle cases where subcategory might not exist
+    has_subcategory = "subcategory" in filtered_df.columns
+
+    if has_subcategory:
+        # Group by both category and subcategory
+        grouped = filtered_df.groupby(["category", "subcategory"], dropna=False).agg({
+            "amount": ["sum", "count", "mean"]
+        }).reset_index()
+        grouped.columns = ["category", "subcategory", "total_amount", "transaction_count", "avg_amount"]
+    else:
+        # Group by category only
+        grouped = filtered_df.groupby("category", dropna=False).agg({
+            "amount": ["sum", "count", "mean"]
+        }).reset_index()
+        grouped.columns = ["category", "total_amount", "transaction_count", "avg_amount"]
+        grouped["subcategory"] = ""
+
+    # Calculate percentage of total
+    total_amount = grouped["total_amount"].sum()
+    if total_amount > 0:
+        grouped["percentage"] = (grouped["total_amount"] / total_amount) * 100
+    else:
+        grouped["percentage"] = 0
+
+    # Sort by total amount descending
+    grouped = grouped.sort_values("total_amount", ascending=False)
+
+    return grouped
+
+
+def top_original_subcategories(df: pd.DataFrame, n: int = 20, transaction_type: str = "expense") -> pd.DataFrame:
+    """
+    Get top N original subcategories by spending amount (Chinese names).
+
+    Args:
+        df: Processed DataFrame
+        n: Number of top subcategories to return
+        transaction_type: Type of transaction to analyze
+
+    Returns:
+        DataFrame with top subcategories and their statistics
+    """
+    category_analysis = analyze_original_categories(df, transaction_type)
+
+    if category_analysis.empty:
+        return pd.DataFrame()
+
+    # Filter out entries without subcategory if needed
+    if "subcategory" in category_analysis.columns:
+        category_analysis = category_analysis[
+            category_analysis["subcategory"].notna() &
+            (category_analysis["subcategory"] != "")
+        ]
+
+    # Return top N
+    return category_analysis.head(n) 

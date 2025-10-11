@@ -642,3 +642,118 @@ def display_time_pattern_insights(df: pd.DataFrame):
                     f"{hour_data.get('transaction_count', 0)} txns",
                     delta=f"${hour_data.get('total_amount', 0):,.0f}"
                 )
+
+
+def display_comparison_metrics(df: pd.DataFrame):
+    """
+    Display MoM and YoY comparison metrics in a card-style layout.
+
+    Args:
+        df: Processed DataFrame
+    """
+    from ..features.kpis import calculate_mom_metrics, calculate_yoy_metrics
+
+    mom_metrics = calculate_mom_metrics(df)
+    yoy_metrics = calculate_yoy_metrics(df)
+
+    if not mom_metrics and not yoy_metrics:
+        st.info("📊 Insufficient data for period comparisons. Need at least 2 months of data.")
+        return
+
+    # Header
+    st.markdown("### 📊 Period-over-Period Comparisons")
+
+    # Display latest period info
+    if mom_metrics:
+        st.caption(f"**Latest Period:** {mom_metrics.get('latest_month', 'N/A')}")
+
+    # Create tabs for MoM and YoY
+    comp_tabs = st.tabs(["📅 Month-over-Month", "📆 Year-over-Year"])
+
+    # MoM Tab
+    with comp_tabs[0]:
+        if not mom_metrics:
+            st.warning("Insufficient data for month-over-month comparison")
+        else:
+            st.markdown(f"**Comparing {mom_metrics['latest_month']} vs {mom_metrics['previous_month']}**")
+
+            col1, col2, col3 = st.columns(3)
+
+            with col1:
+                income_change = mom_metrics['income']['change']
+                income_pct = mom_metrics['income']['change_pct']
+                st.metric(
+                    "💰 Income",
+                    f"${mom_metrics['income']['current']:,.0f}",
+                    delta=f"{income_change:+,.0f} ({income_pct:+.1f}%)",
+                    delta_color="normal" if income_change >= 0 else "inverse"
+                )
+
+            with col2:
+                expense_change = mom_metrics['expenses']['change']
+                expense_pct = mom_metrics['expenses']['change_pct']
+                st.metric(
+                    "💸 Expenses",
+                    f"${mom_metrics['expenses']['current']:,.0f}",
+                    delta=f"{expense_change:+,.0f} ({expense_pct:+.1f}%)",
+                    delta_color="inverse" if expense_change >= 0 else "normal"
+                )
+
+            with col3:
+                savings_change = mom_metrics['net_savings']['change']
+                savings_pct = mom_metrics['net_savings']['change_pct']
+                st.metric(
+                    "💎 Net Savings",
+                    f"${mom_metrics['net_savings']['current']:,.0f}",
+                    delta=f"{savings_change:+,.0f} ({savings_pct:+.1f}%)",
+                    delta_color="normal" if savings_change >= 0 else "inverse"
+                )
+
+    # YoY Tab
+    with comp_tabs[1]:
+        if not yoy_metrics or "error" in yoy_metrics:
+            st.warning("Insufficient data for year-over-year comparison (need at least 2 years)")
+        else:
+            prev_year_month = f"{int(yoy_metrics['latest_month'][:4]) - 1}-{yoy_metrics['latest_month'][5:]}"
+            st.markdown(f"**Comparing {yoy_metrics['latest_month']} vs {prev_year_month}**")
+
+            col1, col2, col3 = st.columns(3)
+
+            with col1:
+                income_change = yoy_metrics['income']['change']
+                income_pct = yoy_metrics['income']['change_pct']
+                if pd.notna(income_change) and pd.notna(income_pct):
+                    st.metric(
+                        "💰 Income",
+                        f"${yoy_metrics['income']['current']:,.0f}",
+                        delta=f"{income_change:+,.0f} ({income_pct:+.1f}%)",
+                        delta_color="normal" if income_change >= 0 else "inverse"
+                    )
+                else:
+                    st.metric("💰 Income", f"${yoy_metrics['income']['current']:,.0f}", delta="N/A")
+
+            with col2:
+                expense_change = yoy_metrics['expenses']['change']
+                expense_pct = yoy_metrics['expenses']['change_pct']
+                if pd.notna(expense_change) and pd.notna(expense_pct):
+                    st.metric(
+                        "💸 Expenses",
+                        f"${yoy_metrics['expenses']['current']:,.0f}",
+                        delta=f"{expense_change:+,.0f} ({expense_pct:+.1f}%)",
+                        delta_color="inverse" if expense_change >= 0 else "normal"
+                    )
+                else:
+                    st.metric("💸 Expenses", f"${yoy_metrics['expenses']['current']:,.0f}", delta="N/A")
+
+            with col3:
+                savings_change = yoy_metrics['net_savings']['change']
+                savings_pct = yoy_metrics['net_savings']['change_pct']
+                if pd.notna(savings_change) and pd.notna(savings_pct):
+                    st.metric(
+                        "💎 Net Savings",
+                        f"${yoy_metrics['net_savings']['current']:,.0f}",
+                        delta=f"{savings_change:+,.0f} ({savings_pct:+.1f}%)",
+                        delta_color="normal" if savings_change >= 0 else "inverse"
+                    )
+                else:
+                    st.metric("💎 Net Savings", f"${yoy_metrics['net_savings']['current']:,.0f}", delta="N/A")

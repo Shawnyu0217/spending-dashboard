@@ -17,7 +17,12 @@ from ..features.viz import (
     create_expense_distribution_pie,
     create_hourly_spending_heatmap,
     create_time_of_day_spending_chart,
-    create_category_by_time_heatmap
+    create_category_by_time_heatmap,
+    create_monthly_trend_with_yoy_chart,
+    create_mom_yoy_comparison_metrics_chart,
+    create_original_category_treemap,
+    create_original_category_sunburst,
+    create_original_subcategory_ranking
 )
 from .components import (
     display_kpi_cards,
@@ -26,7 +31,8 @@ from .components import (
     create_export_section,
     create_chart_container,
     display_savings_rate_insights,
-    display_time_pattern_insights
+    display_time_pattern_insights,
+    display_comparison_metrics
 )
 
 
@@ -119,6 +125,44 @@ def render_trends_tab(df_filtered: pd.DataFrame):
 
     st.divider()
 
+    # NEW: Year-over-Year & Month-over-Month Comparisons
+    with st.expander("📊 Period-over-Period Comparisons (MoM & YoY)", expanded=True):
+        st.markdown("Compare current period performance against previous periods to identify growth trends.")
+
+        # Display comparison metrics cards
+        display_comparison_metrics(df_filtered)
+
+        st.divider()
+
+        # MoM vs YoY percentage change chart
+        create_chart_container(
+            "📈 MoM vs YoY Comparison",
+            create_mom_yoy_comparison_metrics_chart,
+            df_filtered,
+            chart_key="trends_mom_yoy_comparison"
+        )
+
+        st.divider()
+
+        # YoY comparison charts by metric
+        st.markdown("#### Year-over-Year Detailed Comparison")
+
+        metric_selector = st.selectbox(
+            "Select metric to compare",
+            options=["expenses", "income", "net_savings"],
+            format_func=lambda x: x.replace("_", " ").title(),
+            key="yoy_metric_selector"
+        )
+
+        create_chart_container(
+            f"Year-over-Year {metric_selector.replace('_', ' ').title()}",
+            lambda df: create_monthly_trend_with_yoy_chart(df, metric=metric_selector),
+            df_filtered,
+            chart_key=f"trends_yoy_{metric_selector}"
+        )
+
+    st.divider()
+
     # Cumulative balance - full width
     create_chart_container(
         "📈 Cumulative Balance Over Time",
@@ -205,7 +249,7 @@ def render_categories_tab(df_filtered: pd.DataFrame):
 
     st.divider()
 
-    # Two-column layout for category charts
+    # Two-column layout for category charts (Mapped English categories)
     col1, col2 = st.columns(2)
 
     with col1:
@@ -253,6 +297,118 @@ def render_categories_tab(df_filtered: pd.DataFrame):
             st.info("No expense data available for category analysis.")
     else:
         st.warning("Category information not available in the dataset.")
+
+    st.divider()
+
+    # NEW: Original Category Analysis (Chinese names)
+    st.markdown("### 🏷️ 原始分类分析 (Original Category Analysis)")
+    st.markdown("Explore your spending using the original Chinese category and subcategory names from your financial app.")
+
+    # Check if original category data is available
+    if "category" not in df_filtered.columns:
+        st.warning("⚠️ Original category data not available in the current dataset.")
+        return
+
+    # Transaction type selector
+    analysis_type = st.radio(
+        "选择交易类型 (Select Transaction Type)",
+        options=["expense", "income", "all"],
+        format_func=lambda x: {"expense": "支出 (Expenses)", "income": "收入 (Income)", "all": "全部 (All)"}[x],
+        horizontal=True,
+        key="original_category_type"
+    )
+
+    st.divider()
+
+    # Treemap - full width
+    create_chart_container(
+        "🗺️ Category Hierarchy Treemap",
+        lambda df: create_original_category_treemap(df, transaction_type=analysis_type),
+        df_filtered,
+        chart_key=f"categories_original_treemap_{analysis_type}"
+    )
+
+    st.divider()
+
+    # Two-column layout for sunburst and ranking
+    col1, col2 = st.columns(2)
+
+    with col1:
+        create_chart_container(
+            "☀️ Category Sunburst",
+            lambda df: create_original_category_sunburst(df, transaction_type=analysis_type),
+            df_filtered,
+            chart_key=f"categories_original_sunburst_{analysis_type}"
+        )
+
+    with col2:
+        create_chart_container(
+            "📊 Top Subcategories",
+            lambda df: create_original_subcategory_ranking(df, n=15, transaction_type=analysis_type),
+            df_filtered,
+            chart_key=f"categories_original_ranking_{analysis_type}"
+        )
+
+    st.divider()
+
+    # Detailed table with search
+    st.markdown("### 📋 详细分类表格 (Detailed Category Table)")
+
+    from ..features.kpis import analyze_original_categories
+
+    category_data = analyze_original_categories(df_filtered, transaction_type=analysis_type)
+
+    if not category_data.empty:
+        # Add search box
+        search_term = st.text_input(
+            "搜索分类或子分类 (Search category or subcategory)",
+            placeholder="输入关键词... (Enter keyword...)",
+            key="category_search"
+        )
+
+        # Filter based on search
+        if search_term:
+            mask = (
+                category_data["category"].str.contains(search_term, case=False, na=False) |
+                category_data["subcategory"].astype(str).str.contains(search_term, case=False, na=False)
+            )
+            category_data = category_data[mask]
+
+        # Format for display
+        display_data = category_data.copy()
+        display_data.columns = [
+            "分类 (Category)",
+            "子分类 (Subcategory)",
+            "总金额 (Total)",
+            "交易数 (Count)",
+            "平均金额 (Avg)",
+            "占比 (%)"]
+
+        # Format currency columns
+        for col in ["总金额 (Total)", "平均金额 (Avg)"]:
+            display_data[col] = display_data[col].apply(lambda x: f"${x:,.2f}")
+
+        display_data["占比 (%)"] = display_data["占比 (%)"].apply(lambda x: f"{x:.1f}%")
+
+        st.dataframe(
+            display_data,
+            use_container_width=True,
+            hide_index=True,
+            height=400
+        )
+
+        # Summary stats
+        col1, col2, col3 = st.columns(3)
+        with col1:
+            unique_cats = category_data["category"].nunique()
+            st.metric("总分类数 (Total Categories)", unique_cats)
+        with col2:
+            unique_subs = category_data["subcategory"].nunique()
+            st.metric("总子分类数 (Total Subcategories)", unique_subs)
+        with col3:
+            st.metric("显示记录数 (Displayed Records)", len(category_data))
+    else:
+        st.info("No original category data available for the selected transaction type.")
 
 
 def render_insights_tab(df_filtered: pd.DataFrame, chart_config: Dict[str, Any]):
