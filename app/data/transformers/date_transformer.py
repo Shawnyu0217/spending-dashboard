@@ -18,7 +18,8 @@ class DateTransformer(BaseTransformer):
         """Get list of columns that this transformer adds."""
         return [
             "year", "month", "day", "weekday", "month_name",
-            "ym", "ym_str", "quarter", "quarter_str"
+            "ym", "ym_str", "quarter", "quarter_str",
+            "hour", "minute", "time_of_day", "is_weekend", "hour_minute_str"
         ]
     
     def transform(self, df: pd.DataFrame) -> pd.DataFrame:
@@ -57,8 +58,26 @@ class DateTransformer(BaseTransformer):
             # Quarter
             df_result["quarter"] = df_result["date"].dt.quarter
             df_result["quarter_str"] = df_result["year"].astype(str) + "-Q" + df_result["quarter"].astype(str)
-            
-            self.logger.info(f"Successfully added {len(self.get_output_columns())} date-derived columns")
+
+            # Time-based columns (hour, minute, time of day)
+            df_result["hour"] = df_result["date"].dt.hour
+            df_result["minute"] = df_result["date"].dt.minute
+            df_result["hour_minute_str"] = df_result["date"].dt.strftime("%H:%M")
+
+            # Time of day categorization
+            # Night: 0-6, Morning: 6-12, Afternoon: 12-18, Evening: 18-24
+            df_result["time_of_day"] = pd.cut(
+                df_result["hour"],
+                bins=[0, 6, 12, 18, 24],
+                labels=["Night", "Morning", "Afternoon", "Evening"],
+                include_lowest=True,
+                right=False
+            )
+
+            # Weekend indicator
+            df_result["is_weekend"] = df_result["date"].dt.dayofweek >= 5  # Saturday=5, Sunday=6
+
+            self.logger.info(f"Successfully added {len(self.get_output_columns())} date-derived columns (including time components)")
             
         except Exception as e:
             self.logger.error(f"Error processing date columns: {str(e)}")

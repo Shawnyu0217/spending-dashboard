@@ -117,17 +117,22 @@ CATEGORY_MAPPINGS = {
     "投资房产": "Investment Property",
     "投资房贷": "Investment Property",
     "投资房杂项": "Investment Property",
+    "Council Rate（投资）": "Property Tax",
+
+    # Owner Occupied Housing
+    "自助房": "Owner Occupied Housing",
+    "Council Rate (自住)": "Owner Occupied Housing",
 
     # Income
     "职业收入": "Income",
-    "工资收入": "Salary",
-    "奖金收入": "Bonus",
-    "其他收入": "Other Income",
-    "意外来钱": "Other Income",
-    "津贴": "Allowance",
-    "利息收入": "Investment Income",
-    "Cash rewards": "Investment Income",
-    "CPA资料出售": "Investment Income",
+    "工资收入": "Income",
+    "奖金收入": "Income",
+    "其他收入": "Income",
+    "意外来钱": "Income",
+    "津贴": "Income",
+    "利息收入": "Income",
+    "Cash rewards": "Income",
+    "CPA资料出售": "Income",
 
     # Other / Exceptional
     "烂账损失": "Bad Debt",
@@ -136,8 +141,6 @@ CATEGORY_MAPPINGS = {
     "维修": "Maintenance",
     "维修费": "Maintenance",
     "Solar": "Maintenance",
-    "Council Rate (自住)": "Property Tax",
-    "Council Rate（投资）": "Property Tax",
     "immi": "Government Fees"
 }
 

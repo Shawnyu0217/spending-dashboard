@@ -708,5 +708,262 @@ def create_expense_distribution_pie(df: pd.DataFrame) -> go.Figure:
         height=400,
         showlegend=True
     )
-    
+
+    return fig
+
+def create_hourly_spending_heatmap(df: pd.DataFrame) -> go.Figure:
+    """
+    Create a heatmap showing spending patterns by hour and day of week.
+
+    Args:
+        df: Processed DataFrame with hour and weekday columns
+
+    Returns:
+        Plotly figure
+    """
+    if df.empty or "hour" not in df.columns or "weekday" not in df.columns:
+        fig = go.Figure()
+        fig.add_annotation(
+            text="No hourly spending data available",
+            xref="paper", yref="paper",
+            x=0.5, y=0.5, xanchor='center', yanchor='middle',
+            showarrow=False, font=dict(size=16)
+        )
+        return fig
+
+    # Filter to expenses only
+    expenses_df = df[df["transaction_type"] == "expense"].copy()
+
+    if expenses_df.empty:
+        fig = go.Figure()
+        fig.add_annotation(
+            text="No expense data available",
+            xref="paper", yref="paper",
+            x=0.5, y=0.5, xanchor='center', yanchor='middle',
+            showarrow=False, font=dict(size=16)
+        )
+        return fig
+
+    # Create pivot table for heatmap (Weekday × Hour)
+    heatmap_data = expenses_df.groupby(["weekday", "hour"])["amount"].sum().reset_index()
+    heatmap_pivot = heatmap_data.pivot_table(
+        values="amount",
+        index="weekday",
+        columns="hour",
+        aggfunc="sum",
+        fill_value=0
+    )
+
+    # Reorder weekdays
+    weekday_order = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
+    heatmap_pivot = heatmap_pivot.reindex(weekday_order, fill_value=0)
+
+    # Ensure all hours 0-23 are present
+    all_hours = list(range(24))
+    for hour in all_hours:
+        if hour not in heatmap_pivot.columns:
+            heatmap_pivot[hour] = 0
+    heatmap_pivot = heatmap_pivot[sorted(heatmap_pivot.columns)]
+
+    # Create custom hover text with transaction counts
+    transaction_counts = expenses_df.groupby(["weekday", "hour"]).size().reset_index(name="count")
+    count_pivot = transaction_counts.pivot_table(
+        values="count",
+        index="weekday",
+        columns="hour",
+        aggfunc="sum",
+        fill_value=0
+    )
+    count_pivot = count_pivot.reindex(weekday_order, fill_value=0)
+    for hour in all_hours:
+        if hour not in count_pivot.columns:
+            count_pivot[hour] = 0
+    count_pivot = count_pivot[sorted(count_pivot.columns)]
+
+    # Create hover text
+    hover_text = []
+    for i, day in enumerate(weekday_order):
+        row_text = []
+        for hour in range(24):
+            amount = heatmap_pivot.loc[day, hour]
+            count = count_pivot.loc[day, hour]
+            text = f"{day}<br>Hour: {hour:02d}:00<br>Spending: ${amount:,.0f}<br>Transactions: {int(count)}"
+            row_text.append(text)
+        hover_text.append(row_text)
+
+    fig = go.Figure(data=go.Heatmap(
+        z=heatmap_pivot.values,
+        x=[f"{h:02d}:00" for h in range(24)],
+        y=heatmap_pivot.index,
+        colorscale='Reds',
+        text=hover_text,
+        hovertemplate='%{text}<extra></extra>',
+        colorbar=dict(title="Spending ($)")
+    ))
+
+    fig.update_layout(
+        title="Hourly Spending Heatmap (Hour × Day of Week)",
+        xaxis_title="Hour of Day",
+        yaxis_title="Day of Week",
+        height=400,
+        xaxis=dict(side="bottom", tickangle=0),
+        yaxis=dict(autorange="reversed")
+    )
+
+    return fig
+
+def create_time_of_day_spending_chart(df: pd.DataFrame) -> go.Figure:
+    """
+    Create a bar chart comparing spending by time of day periods.
+
+    Args:
+        df: Processed DataFrame with time_of_day column
+
+    Returns:
+        Plotly figure
+    """
+    if df.empty or "time_of_day" not in df.columns:
+        fig = go.Figure()
+        fig.add_annotation(
+            text="No time of day data available",
+            xref="paper", yref="paper",
+            x=0.5, y=0.5, xanchor='center', yanchor='middle',
+            showarrow=False, font=dict(size=16)
+        )
+        return fig
+
+    expenses_df = df[df["transaction_type"] == "expense"].copy()
+
+    if expenses_df.empty:
+        fig = go.Figure()
+        fig.add_annotation(
+            text="No expense data available",
+            xref="paper", yref="paper",
+            x=0.5, y=0.5, xanchor='center', yanchor='middle',
+            showarrow=False, font=dict(size=16)
+        )
+        return fig
+
+    # Aggregate by time of day
+    time_data = expenses_df.groupby("time_of_day").agg({
+        "amount": ["sum", "count", "mean"]
+    }).reset_index()
+    time_data.columns = ["time_of_day", "total_amount", "transaction_count", "avg_amount"]
+
+    # Ensure proper ordering
+    time_order = ["Night", "Morning", "Afternoon", "Evening"]
+    time_data["time_of_day"] = pd.Categorical(time_data["time_of_day"], categories=time_order, ordered=True)
+    time_data = time_data.sort_values("time_of_day")
+
+    # Define colors for each time period
+    time_colors = {
+        "Night": "#4a5568",      # Dark gray
+        "Morning": "#f6ad55",    # Orange
+        "Afternoon": "#fc8181",  # Red
+        "Evening": "#9f7aea"     # Purple
+    }
+
+    colors = [time_colors.get(str(t), "#gray") for t in time_data["time_of_day"]]
+
+    fig = go.Figure()
+
+    fig.add_trace(go.Bar(
+        x=time_data["time_of_day"],
+        y=time_data["total_amount"],
+        marker_color=colors,
+        text=[f"${amt:,.0f}<br>({cnt} txns)"
+              for amt, cnt in zip(time_data["total_amount"], time_data["transaction_count"])],
+        textposition='auto',
+        hovertemplate='<b>%{x}</b><br>' +
+                     'Total Spending: $%{y:,.0f}<br>' +
+                     'Transactions: %{customdata[0]}<br>' +
+                     'Avg per Transaction: $%{customdata[1]:,.2f}<br>' +
+                     '<extra></extra>',
+        customdata=list(zip(time_data["transaction_count"], time_data["avg_amount"]))
+    ))
+
+    fig.update_layout(
+        title="Spending by Time of Day",
+        xaxis_title="Time Period",
+        yaxis_title="Total Amount ($)",
+        showlegend=False,
+        height=400
+    )
+
+    return fig
+
+def create_category_by_time_heatmap(df: pd.DataFrame, top_n: int = 8) -> go.Figure:
+    """
+    Create a heatmap showing which categories are spent on at different times of day.
+
+    Args:
+        df: Processed DataFrame
+        top_n: Number of top categories to show
+
+    Returns:
+        Plotly figure
+    """
+    if df.empty or "time_of_day" not in df.columns or "category_display" not in df.columns:
+        fig = go.Figure()
+        fig.add_annotation(
+            text="No category time data available",
+            xref="paper", yref="paper",
+            x=0.5, y=0.5, xanchor='center', yanchor='middle',
+            showarrow=False, font=dict(size=16)
+        )
+        return fig
+
+    expenses_df = df[df["transaction_type"] == "expense"].copy()
+
+    if expenses_df.empty:
+        fig = go.Figure()
+        fig.add_annotation(
+            text="No expense data available",
+            xref="paper", yref="paper",
+            x=0.5, y=0.5, xanchor='center', yanchor='middle',
+            showarrow=False, font=dict(size=16)
+        )
+        return fig
+
+    # Get top N categories by total spending
+    top_categories = expenses_df.groupby("category_display")["amount"].sum().nlargest(top_n).index.tolist()
+
+    # Filter to top categories
+    filtered_df = expenses_df[expenses_df["category_display"].isin(top_categories)]
+
+    # Create pivot table
+    heatmap_data = filtered_df.groupby(["category_display", "time_of_day"])["amount"].sum().reset_index()
+    heatmap_pivot = heatmap_data.pivot_table(
+        values="amount",
+        index="category_display",
+        columns="time_of_day",
+        aggfunc="sum",
+        fill_value=0
+    )
+
+    # Ensure proper time ordering
+    time_order = ["Night", "Morning", "Afternoon", "Evening"]
+    heatmap_pivot = heatmap_pivot.reindex(columns=time_order, fill_value=0)
+
+    # Sort categories by total spending
+    heatmap_pivot["total"] = heatmap_pivot.sum(axis=1)
+    heatmap_pivot = heatmap_pivot.sort_values("total", ascending=False).drop("total", axis=1)
+
+    fig = go.Figure(data=go.Heatmap(
+        z=heatmap_pivot.values,
+        x=heatmap_pivot.columns,
+        y=heatmap_pivot.index,
+        colorscale='Blues',
+        hovertemplate='Category: %{y}<br>Time: %{x}<br>Spending: $%{z:,.0f}<extra></extra>',
+        colorbar=dict(title="Spending ($)")
+    ))
+
+    fig.update_layout(
+        title=f"Top {top_n} Categories by Time of Day",
+        xaxis_title="Time of Day",
+        yaxis_title="Category",
+        height=400,
+        yaxis=dict(autorange="reversed")
+    )
+
     return fig 
