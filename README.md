@@ -27,7 +27,15 @@ A comprehensive Streamlit-based dashboard for analyzing personal spending data f
    streamlit run run_dashboard.py
    ```
 
+   Alternative: `streamlit run app/dashboard.py`
+
 4. **Open your browser** to `http://localhost:8501`
+
+5. **Explore the features**
+   - Upload your Excel file or use the sample data
+   - Navigate through the 5 tabs: Overview, Trends, Categories, Savings, Data & Export
+   - Use sidebar filters to focus on specific time periods or categories
+   - Configure chart options for customized visualizations
 
 ## 📊 Features
 
@@ -38,55 +46,90 @@ A comprehensive Streamlit-based dashboard for analyzing personal spending data f
 - **📊 Interactive Charts**: Multiple visualization types for different insights
 - **🔍 Advanced Filtering**: Filter by date, category, account, and family members
 - **💾 Export Options**: Download filtered data and summary statistics
+- **📑 Tab-Based Interface**: Organized dashboard with 5 focused analytical views
 
-### Dashboard Components
+### Dashboard Organization
 
-#### KPI Cards
-- Total Income & Expenses
-- Net Savings & Savings Rate
-- Largest Expense Category
-- Average Daily Spending
+The dashboard uses a **tab-based interface** with the following sections:
 
-#### Interactive Charts
-- **Monthly Trends**: Line chart showing income, expenses, and net savings over time
-- **Category Analysis**: Bar chart of top expense categories
-- **Savings Rate Gauge**: Visual indicator of your savings performance
-- **Expense Distribution**: Pie chart of spending by category type
-- **Account Comparison**: Compare performance across different accounts
-- **Cumulative Balance**: Track your running balance over time
-- **Daily Spending Heatmap**: Identify spending patterns by day/week
+#### 📊 Overview Tab
+- **6 KPI Metric Cards**: Income, Expenses, Savings, Savings Rate, Top Category, Daily Average
+- **Monthly Trends Chart**: Income vs Expenses vs Net Savings over time
+- **Top Expense Categories**: Bar chart showing largest spending categories
+- **Quick Statistics**: Records count, date range, active categories, data coverage
+
+#### 📈 Trends Tab
+- **Monthly Financial Trends**: Detailed line chart with income, expenses, and savings
+- **Cumulative Balance**: Track running balance over time
+- **Hourly Spending Heatmap**: Identify spending patterns by hour and day of week
+- **Time of Day Analysis**: Compare spending across Morning, Afternoon, Evening, Night
+- **Category by Time Heatmap**: See which categories are used at different times
+- **Time Pattern Insights**: Peak hours, weekend vs weekday analysis, most active times
+- **Daily Spending Heatmap (Legacy)**: Week-by-week spending patterns
+
+#### 🏷️ Categories Tab
+- **Top Expense Categories**: Bar chart with transaction counts and averages
+- **Expense Distribution Pie Chart**: Visual breakdown by category type
+- **Category Details Table**: Complete statistics with totals, counts, averages, min/max
+
+#### 💰 Savings Tab
+- **Savings Rate Gauge**: Visual indicator of savings performance
+- **Summary Savings Metrics**: Net savings, rate, daily averages
+- **Enhanced Monthly Savings Rate Chart**: With moving average trends and target lines
+- **Detailed Savings Analysis**: Best/worst months, target achievement, consistency score
+- **Configurable Options**: Adjustable target rates, dual-axis view, trend periods
+
+#### 📋 Data & Export Tab
+- **Filter Summary**: Shows active filters and data coverage
+- **Data Summary**: Key statistics about the filtered dataset
+- **Searchable Transaction Table**: Full transaction details with search functionality
+- **Export Options**: CSV export and summary text export
 
 ### Data Processing Features
 - **Multi-sheet Excel Support**: Automatically combines data from multiple sheets
 - **Column Normalization**: Converts Chinese column names to English
+- **Modular Pipeline Architecture**: Pluggable transformers for flexible data processing
 - **Data Type Conversion**: Proper handling of dates, currencies, and categories
+- **Temporal Feature Extraction**: Hour, day of week, time of day, weekend flags
+- **Running Balance Calculation**: Cumulative balance tracking over time
 - **Missing Data Handling**: Graceful handling of incomplete data
 - **Currency Symbol Removal**: Automatic cleaning of currency formatting
+- **Dimension Tables**: Automatically generated filter dimensions (years, months, categories, accounts, members)
 
 ## 📁 Project Structure
 
 ```
 spending_dashboard/
 ├── app/
-│   ├── data/                 # Data loading and processing
-│   │   ├── __init__.py
-│   │   ├── loader.py         # Excel file reading and normalization
-│   │   ├── schema.py         # Data schema and validation
-│   │   └── preprocess.py     # Data transformation and enrichment
-│   ├── features/             # Business logic
-│   │   ├── kpis.py          # KPI calculations
-│   │   └── viz.py           # Chart creation functions
-│   ├── ui/                  # User interface components
-│   │   └── components.py    # Reusable Streamlit components
-│   ├── dashboard.py         # Main application entry point
-│   └── config.py           # Configuration and constants
-├── data/                    # Sample data files
-│   └── *.xlsx              # Excel files
-├── tests/                   # Unit tests
-│   ├── test_loader.py      # Data loading tests
-│   └── test_kpis.py        # KPI calculation tests
-├── requirements.txt         # Python dependencies
-└── README.md               # This file
+│   ├── data/                      # Data loading and processing
+│   │   ├── loader.py              # Excel file reading and normalization
+│   │   ├── schema.py              # Data schema and validation
+│   │   ├── preprocess.py          # Data transformation entry point
+│   │   ├── pipeline.py            # Pipeline orchestrator for modular transformations
+│   │   ├── dimension_builder.py   # Creates dimension tables for filters
+│   │   ├── filters.py             # Data filtering utilities
+│   │   └── transformers/          # Modular transformation components
+│   │       ├── base.py            # Base transformer classes and protocols
+│   │       ├── date_transformer.py       # Date parsing and temporal features
+│   │       ├── financial_transformer.py  # Financial data processing
+│   │       └── category_transformer.py   # Category mapping
+│   ├── features/                  # Business logic
+│   │   ├── kpis.py               # KPI calculations and metrics
+│   │   └── viz.py                # Chart creation functions (20+ chart types)
+│   ├── ui/                       # User interface components
+│   │   ├── components.py         # Reusable Streamlit components
+│   │   └── tabs.py               # Tab-based dashboard organization
+│   ├── dashboard.py              # Main application entry point
+│   └── config.py                 # Configuration and constants
+├── data/                          # Sample data files
+│   └── *.xlsx                    # Excel files
+├── tests/                         # Unit tests
+│   ├── test_loader.py            # Data loading tests
+│   └── test_kpis.py              # KPI calculation tests
+├── requirements.txt               # Python dependencies
+├── run_dashboard.py              # Convenience runner script
+├── CLAUDE.md                     # AI assistant instructions
+└── README.md                     # This file
 ```
 
 ## 📝 Data Format
@@ -123,6 +166,12 @@ The dashboard expects Excel files with the following columns (Chinese or English
 - **Categories**: Focus on particular spending categories
 - **Accounts**: Compare different accounts (cash, bank, credit cards)
 - **Family Members**: Analyze spending by family member
+
+### Chart Configuration
+- **Savings Rate Options**: Adjustable target rates, dual-axis view, moving average trends
+- **Display Settings**: Chart height adjustment, annotation toggles, compact mode
+- **Trend Periods**: Configurable moving average periods (2, 3, 4, or 6 months)
+- **Interactive Controls**: All configuration options available in sidebar
 
 ### Data Export
 - Download filtered transaction data as CSV
@@ -249,12 +298,14 @@ This project is open source and available under the MIT License.
 ## 🔮 Future Enhancements
 
 Planned features for future releases:
-- Budget tracking and alerts
-- Recurring transaction detection
-- Multi-currency support
-- Mobile-responsive design
-- Data synchronization with financial APIs
-- Advanced analytics and forecasting
+- **Budget tracking and alerts**: Set spending limits and receive notifications
+- **Recurring transaction detection**: Automatically identify subscription and recurring payments
+- **Multi-currency support**: Handle transactions in different currencies
+- **Predictive analytics**: Forecast future spending and savings trends
+- **Data synchronization**: Integration with financial APIs and bank feeds
+- **Custom report builder**: Create and save custom analytical reports
+- **Goal tracking**: Set and monitor financial goals
+- **Comparison mode**: Compare spending across different time periods
 
 ---
 *Built with ❤️ using Streamlit, Pandas, and Plotly*
